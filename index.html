@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>羽毛球個人積分排行榜</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css?v=7" />
+  </head>
+  <body>
+    <header class="app-header">
+      <nav class="topbar" aria-label="主要導覽">
+        <a class="brand" href="#leaderboard" aria-label="首頁">
+          <span class="brand-mark">羽</span>
+          <span>
+            <strong>羽盟</strong>
+            <small>Player Rating</small>
+          </span>
+        </a>
+        <div class="nav-links">
+          <a href="#leaderboard">排行榜</a>
+          <a href="#players">選手</a>
+          <a href="#match">新增比賽</a>
+          <a href="#analytics">計分規則</a>
+        </div>
+      </nav>
+
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">Badminton rating system</p>
+          <h1 id="hero-title">羽毛球個人積分排行榜</h1>
+          <p>
+            每位選手由 5.00 分開始，最高 10.00 分。比賽會按勝負、比分差距，以及高分選手輸給低分選手的爆冷程度，自動調整個人分數。
+          </p>
+          <div class="hero-actions">
+            <a class="primary-action" href="#match">記錄新比賽</a>
+            <a class="secondary-action" href="#players">新增選手</a>
+          </div>
+        </div>
+        <div class="court-panel" aria-hidden="true">
+          <div class="court">
+            <span class="net"></span>
+            <span class="line line-a"></span>
+            <span class="line line-b"></span>
+            <span class="shuttle"></span>
+          </div>
+        </div>
+      </section>
+    </header>
+
+    <main>
+      <section class="section stats-band" aria-label="整體統計">
+        <article>
+          <span id="totalPlayers">0</span>
+          <p>選手人數</p>
+        </article>
+        <article>
+          <span id="totalMatches">0</span>
+          <p>已儲存比賽</p>
+        </article>
+        <article>
+          <span id="topScore">0.00</span>
+          <p>目前最高分</p>
+        </article>
+        <article>
+          <span id="avgScore">5.00</span>
+          <p>平均分數</p>
+        </article>
+      </section>
+
+      <section id="leaderboard" class="section workspace">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Live leaderboard</p>
+            <h2>動態排行榜</h2>
+          </div>
+          <p class="hint">只計個人分數，初始 5 分，最高 10 分。</p>
+        </div>
+
+        <div class="toolbar">
+          <label class="search-field">
+            <span>搜尋</span>
+            <input id="searchInput" type="search" placeholder="輸入選手姓名" />
+          </label>
+          <label class="select-field">
+            <span>排序</span>
+            <select id="sortSelect">
+              <option value="rating">分數高到低</option>
+              <option value="winRate">勝率高到低</option>
+              <option value="matches">場次高到低</option>
+              <option value="recent">近期活躍</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>排名</th>
+                <th>選手</th>
+                <th>分數</th>
+                <th>勝率</th>
+                <th>戰績</th>
+                <th>得失分</th>
+                <th>最近比賽</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="players" class="section split-layout">
+        <div>
+          <div class="section-heading compact">
+            <div>
+              <p class="eyebrow">Players</p>
+              <h2>選手管理</h2>
+            </div>
+          </div>
+          <form id="playerForm" class="inline-form">
+            <input id="newPlayerName" type="text" placeholder="新增選手姓名" maxlength="30" />
+            <select id="newPlayerGender">
+              <option value="男">男</option>
+              <option value="女">女</option>
+            </select>
+            <button class="primary-action" type="button" onclick="return handleAddPlayerClick(event)">新增</button>
+          </form>
+          <div id="playerList" class="player-grid"></div>
+        </div>
+        <aside class="detail-panel" id="playerDetail" aria-live="polite"></aside>
+      </section>
+
+      <section id="match" class="section match-section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Match entry</p>
+            <h2>新增比賽紀錄</h2>
+          </div>
+          <p class="hint">選 4 位不同選手，輸入比分，系統會先試算個人分數變化。</p>
+        </div>
+        <form id="matchForm" class="match-form">
+          <div class="team-input flexible-team">
+            <h3>A 隊</h3>
+            <label>
+              <span>選手 1</span>
+              <select id="teamAPlayer1"></select>
+            </label>
+            <label>
+              <span>選手 2</span>
+              <select id="teamAPlayer2"></select>
+            </label>
+            <label>
+              <span>得分</span>
+              <input id="scoreA" type="number" min="0" max="99" value="21" />
+            </label>
+          </div>
+          <div class="versus">VS</div>
+          <div class="team-input flexible-team">
+            <h3>B 隊</h3>
+            <label>
+              <span>選手 1</span>
+              <select id="teamBPlayer1"></select>
+            </label>
+            <label>
+              <span>選手 2</span>
+              <select id="teamBPlayer2"></select>
+            </label>
+            <label>
+              <span>得分</span>
+              <input id="scoreB" type="number" min="0" max="99" value="17" />
+            </label>
+          </div>
+          <div class="form-actions">
+            <button class="secondary-action" id="previewButton" type="button" onclick="return handlePreviewClick(event)">試算變動</button>
+            <button class="primary-action" type="button" onclick="return handleSaveMatchClick(event)">儲存比賽</button>
+          </div>
+        </form>
+        <div id="appStatus" class="status-box" role="status">系統已載入，可以新增選手同比賽。</div>
+        <div id="ratingPreview" class="preview-box"></div>
+      </section>
+
+      <section id="analytics" class="section analytics">
+        <div class="section-heading compact">
+          <div>
+            <p class="eyebrow">Scoring model</p>
+            <h2>計分規則</h2>
+          </div>
+          <button class="danger-action" id="resetButton" type="button" onclick="return handleResetClick(event)">重設示範資料</button>
+        </div>
+        <div id="ruleCards" class="team-cards"></div>
+      </section>
+    </main>
+
+    <footer>
+      <p>資料儲存在此瀏覽器的 localStorage。多人共用版本可再接 PostgreSQL / Supabase。</p>
+    </footer>
+
+    <script src="app.js?v=7"></script>
+  </body>
+</html>
