@@ -153,7 +153,8 @@ h1 {
 
 .primary-action,
 .secondary-action,
-.danger-action {
+.danger-action,
+.mini-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -198,9 +199,28 @@ h1 {
   font-weight: 800;
 }
 
+.mini-action {
+  min-height: 32px;
+  padding: 5px 10px;
+  border-color: var(--line);
+  background: white;
+  color: var(--green-dark);
+  font-size: 13px;
+}
+
+.action-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .card-actions {
   display: flex;
   justify-content: flex-end;
+}
+
+.hidden {
+  display: none !important;
 }
 
 .court-panel {
@@ -384,6 +404,24 @@ h2 {
   grid-template-columns: minmax(0, 1fr) 120px auto;
   gap: 10px;
   margin-bottom: 18px;
+}
+
+.backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.import-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.import-button input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
 }
 
 .search-field {
