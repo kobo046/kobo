@@ -1,4 +1,4 @@
-const storageKey = "badmintonPlayerRating.v1";
+const storageKey = "badmintonPlayerRating.v2";
 const minRating = 0;
 const initialRating = 5;
 const maxRating = 10;
@@ -6,22 +6,27 @@ const baseK = 0.45;
 
 const seedData = {
   players: [
-    { id: "p1", name: "林柏辰", gender: "男", rating: 5, wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0, recent: "-" },
-    { id: "p2", name: "陳昱安", gender: "男", rating: 5, wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0, recent: "-" },
-    { id: "p3", name: "王品妤", gender: "女", rating: 5, wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0, recent: "-" },
-    { id: "p4", name: "張筱涵", gender: "女", rating: 5, wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0, recent: "-" },
-    { id: "p5", name: "黃子豪", gender: "男", rating: 5, wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0, recent: "-" },
-    { id: "p6", name: "吳佳蓉", gender: "女", rating: 5, wins: 0, losses: 0, pointsFor: 0, pointsAgainst: 0, recent: "-" }
+    { id: "p1", name: "林柏辰", gender: "男" },
+    { id: "p2", name: "陳昱安", gender: "男" },
+    { id: "p3", name: "王品妤", gender: "女" },
+    { id: "p4", name: "張筱涵", gender: "女" },
+    { id: "p5", name: "黃子豪", gender: "男" },
+    { id: "p6", name: "吳佳蓉", gender: "女" }
   ],
-  matchesRecorded: 0
+  matches: []
 };
 
-function clone(value) {
-  return JSON.parse(JSON.stringify(value));
-}
+let state = loadState();
+let selectedPlayerId = state.players.length ? state.players[0].id : "";
+let editingMatchId = "";
+let matchSummaries = [];
 
 function byId(id) {
   return document.getElementById(id);
+}
+
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
 }
 
 function clamp(value, min, max) {
@@ -32,44 +37,75 @@ function formatScore(value) {
   return Number(value).toFixed(2);
 }
 
+function createStats(player) {
+  return {
+    id: String(player.id),
+    name: String(player.name),
+    gender: player.gender === "女" ? "女" : "男",
+    rating: initialRating,
+    wins: 0,
+    losses: 0,
+    pointsFor: 0,
+    pointsAgainst: 0,
+    recent: "-"
+  };
+}
+
+function normalizeState(input) {
+  const rawPlayers = Array.isArray(input.players) ? input.players : [];
+  const players = rawPlayers
+    .filter((player) => player && player.id && player.name)
+    .map((player) => ({
+      id: String(player.id),
+      name: String(player.name),
+      gender: player.gender === "女" ? "女" : "男"
+    }));
+
+  const playerIds = new Set(players.map((player) => player.id));
+  const rawMatches = Array.isArray(input.matches) ? input.matches : [];
+  const matches = rawMatches
+    .filter((match) => {
+      const ids = [...(match.teamAIds || []), ...(match.teamBIds || [])];
+      return (
+        match &&
+        match.id &&
+        Array.isArray(match.teamAIds) &&
+        Array.isArray(match.teamBIds) &&
+        match.teamAIds.length === 2 &&
+        match.teamBIds.length === 2 &&
+        ids.every((id) => playerIds.has(id)) &&
+        new Set(ids).size === 4 &&
+        Number(match.scoreA) !== Number(match.scoreB)
+      );
+    })
+    .map((match) => ({
+      id: String(match.id),
+      date: match.date || new Date().toISOString().slice(0, 10),
+      teamAIds: match.teamAIds.map(String),
+      teamBIds: match.teamBIds.map(String),
+      scoreA: Number(match.scoreA),
+      scoreB: Number(match.scoreB)
+    }));
+
+  return {
+    players: players.length ? players : clone(seedData.players),
+    matches
+  };
+}
+
 function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey));
-    if (saved && saved.players && saved.players.length) return normalizeState(saved);
+    if (saved && saved.players) return normalizeState(saved);
   } catch (error) {
     localStorage.removeItem(storageKey);
   }
   return normalizeState(clone(seedData));
 }
 
-function normalizeState(input) {
-  const players = Array.isArray(input.players) ? input.players : [];
-  const normalizedPlayers = players
-    .filter((player) => player && player.id && player.name)
-    .map((player) => ({
-      id: String(player.id),
-      name: String(player.name),
-      gender: player.gender === "女" ? "女" : "男",
-      rating: clamp(Number(player.rating || initialRating), minRating, maxRating),
-      wins: Number(player.wins || 0),
-      losses: Number(player.losses || 0),
-      pointsFor: Number(player.pointsFor || 0),
-      pointsAgainst: Number(player.pointsAgainst || 0),
-      recent: player.recent || "-"
-    }));
-
-  return {
-    players: normalizedPlayers.length ? normalizedPlayers : clone(seedData.players),
-    matchesRecorded: Number(input.matchesRecorded || 0)
-  };
-}
-
 function saveState() {
   localStorage.setItem(storageKey, JSON.stringify(state));
 }
-
-let state = loadState();
-let selectedPlayerId = state.players.length ? state.players[0].id : "";
 
 function setStatus(message, isError = false) {
   const status = byId("appStatus");
@@ -78,8 +114,21 @@ function setStatus(message, isError = false) {
   status.classList.toggle("error", isError);
 }
 
-function getPlayer(id) {
+function basePlayer(id) {
   return state.players.find((player) => player.id === id);
+}
+
+function currentPlayer(id) {
+  return computedPlayers().find((player) => player.id === id);
+}
+
+function playerName(id) {
+  const player = basePlayer(id);
+  return player ? player.name : "未知選手";
+}
+
+function teamLabel(ids) {
+  return ids.map(playerName).join(" / ");
 }
 
 function selectedPlayerIds() {
@@ -91,18 +140,18 @@ function selectedPlayerIds() {
   ];
 }
 
-function averageRating(ids) {
-  const total = ids.reduce((sum, id) => sum + getPlayer(id).rating, 0);
-  return total / ids.length;
-}
-
 function expectedWinRate(teamRating, opponentRating) {
   return 1 / (1 + Math.pow(10, (opponentRating - teamRating) / 4));
 }
 
-function calculateMatchChange(teamAIds, teamBIds, scoreA, scoreB) {
-  const teamARating = averageRating(teamAIds);
-  const teamBRating = averageRating(teamBIds);
+function averageRating(ids, players) {
+  const total = ids.reduce((sum, id) => sum + players.find((player) => player.id === id).rating, 0);
+  return total / ids.length;
+}
+
+function calculateMatchChange(teamAIds, teamBIds, scoreA, scoreB, players) {
+  const teamARating = averageRating(teamAIds, players);
+  const teamBRating = averageRating(teamBIds, players);
   const expectedA = expectedWinRate(teamARating, teamBRating);
   const actualA = scoreA > scoreB ? 1 : 0;
   const pointDiff = Math.abs(scoreA - scoreB);
@@ -111,16 +160,68 @@ function calculateMatchChange(teamAIds, teamBIds, scoreA, scoreB) {
   const marginMultiplier = 1 + marginRatio;
   const rawChangeA = baseK * marginMultiplier * (actualA - expectedA);
   const changeA = clamp(rawChangeA, -0.9, 0.9);
-  const changeB = -changeA;
 
   return {
     actualA,
     expectedA,
-    expectedB: 1 - expectedA,
     marginMultiplier,
     changeA,
-    changeB
+    changeB: -changeA
   };
+}
+
+function applyMatch(players, match) {
+  const result = calculateMatchChange(match.teamAIds, match.teamBIds, match.scoreA, match.scoreB, players);
+  const aWins = match.scoreA > match.scoreB;
+  const playerChanges = {};
+
+  const nextPlayers = players.map((player) => {
+    const isA = match.teamAIds.includes(player.id);
+    const isB = match.teamBIds.includes(player.id);
+    if (!isA && !isB) return player;
+
+    const change = isA ? result.changeA : result.changeB;
+    const pointsFor = isA ? match.scoreA : match.scoreB;
+    const pointsAgainst = isA ? match.scoreB : match.scoreA;
+    const won = isA ? aWins : !aWins;
+    playerChanges[player.id] = change;
+
+    return {
+      ...player,
+      rating: clamp(player.rating + change, minRating, maxRating),
+      wins: player.wins + (won ? 1 : 0),
+      losses: player.losses + (won ? 0 : 1),
+      pointsFor: player.pointsFor + pointsFor,
+      pointsAgainst: player.pointsAgainst + pointsAgainst,
+      recent: match.date
+    };
+  });
+
+  return { players: nextPlayers, result, playerChanges };
+}
+
+function recompute() {
+  let players = state.players.map(createStats);
+  const summaries = [];
+
+  state.matches.forEach((match) => {
+    const before = clone(players);
+    const applied = applyMatch(players, match);
+    players = applied.players;
+    summaries.push({
+      ...match,
+      result: applied.result,
+      playerChanges: applied.playerChanges,
+      before
+    });
+  });
+
+  matchSummaries = summaries;
+  return players;
+}
+
+function computedPlayers() {
+  return recompute();
 }
 
 function winRate(player) {
@@ -131,7 +232,7 @@ function winRate(player) {
 function sortedPlayers() {
   const query = byId("searchInput").value.trim().toLowerCase();
   const sort = byId("sortSelect").value;
-  return [...state.players]
+  return computedPlayers()
     .filter((player) => player.name.toLowerCase().includes(query))
     .sort((a, b) => {
       if (sort === "winRate") return winRate(b) - winRate(a);
@@ -142,18 +243,18 @@ function sortedPlayers() {
 }
 
 function renderStats() {
-  const scores = state.players.map((player) => player.rating);
+  const players = computedPlayers();
+  const scores = players.map((player) => player.rating);
   const avg = scores.length ? scores.reduce((sum, score) => sum + score, 0) / scores.length : initialRating;
   byId("totalPlayers").textContent = state.players.length;
-  byId("totalMatches").textContent = state.matchesRecorded;
+  byId("totalMatches").textContent = state.matches.length;
   byId("topScore").textContent = formatScore(scores.length ? Math.max(...scores) : initialRating);
   byId("avgScore").textContent = formatScore(avg);
 }
 
 function renderLeaderboard() {
-  const body = byId("leaderboardBody");
   const rows = sortedPlayers();
-  body.innerHTML = rows.length
+  byId("leaderboardBody").innerHTML = rows.length
     ? rows
         .map((player, index) => {
           const played = player.wins + player.losses;
@@ -179,9 +280,10 @@ function renderLeaderboard() {
 }
 
 function renderPlayers() {
-  const list = byId("playerList");
-  list.innerHTML = state.players
-    .map((player) => `
+  const players = computedPlayers();
+  byId("playerList").innerHTML = players
+    .map(
+      (player) => `
       <button class="player-card ${player.id === selectedPlayerId ? "active" : ""}" type="button" data-player="${player.id}">
         <span class="avatar">${player.name.slice(0, 1)}</span>
         <strong>${player.name}</strong>
@@ -191,10 +293,11 @@ function renderPlayers() {
           <span class="mini-danger" onclick="return handleDeletePlayerClick(event, '${player.id}')">刪除</span>
         </span>
       </button>
-    `)
+    `
+    )
     .join("");
 
-  list.querySelectorAll(".player-card").forEach((card) => {
+  document.querySelectorAll(".player-card").forEach((card) => {
     card.addEventListener("click", () => {
       selectedPlayerId = card.dataset.player;
       renderPlayers();
@@ -204,7 +307,7 @@ function renderPlayers() {
 }
 
 function renderPlayerDetail() {
-  const player = getPlayer(selectedPlayerId);
+  const player = currentPlayer(selectedPlayerId);
   if (!player) {
     byId("playerDetail").innerHTML = "<p>請先新增選手。</p>";
     return;
@@ -214,22 +317,10 @@ function renderPlayerDetail() {
     <span class="avatar">${player.name.slice(0, 1)}</span>
     <h3>${player.name}</h3>
     <p class="meta">${player.gender}</p>
-    <div class="partner-row">
-      <strong>目前分數</strong>
-      <span class="score-pill">${formatScore(player.rating)}</span>
-    </div>
-    <div class="partner-row">
-      <strong>勝率</strong>
-      <span>${winRate(player)}%</span>
-    </div>
-    <div class="partner-row">
-      <strong>戰績</strong>
-      <span>${player.wins} 勝 ${player.losses} 敗</span>
-    </div>
-    <div class="partner-row">
-      <strong>得失分</strong>
-      <span>${player.pointsFor}:${player.pointsAgainst}</span>
-    </div>
+    <div class="partner-row"><strong>目前分數</strong><span class="score-pill">${formatScore(player.rating)}</span></div>
+    <div class="partner-row"><strong>勝率</strong><span>${winRate(player)}%</span></div>
+    <div class="partner-row"><strong>戰績</strong><span>${player.wins} 勝 ${player.losses} 敗</span></div>
+    <div class="partner-row"><strong>得失分</strong><span>${player.pointsFor}:${player.pointsAgainst}</span></div>
     <p class="meta">${played ? `最近比賽：${player.recent}` : "尚未有比賽紀錄。"}</p>
   `;
 }
@@ -257,6 +348,33 @@ function renderPlayerOptions() {
   }
 }
 
+function renderHistory() {
+  recompute();
+  byId("historyBody").innerHTML = matchSummaries.length
+    ? [...matchSummaries]
+        .reverse()
+        .map((match) => {
+          const changedNames = [...match.teamAIds, ...match.teamBIds]
+            .map((id) => `${playerName(id)} ${match.playerChanges[id] >= 0 ? "+" : ""}${match.playerChanges[id].toFixed(2)}`)
+            .join("<br>");
+          return `
+            <tr>
+              <td>${match.date}</td>
+              <td>${teamLabel(match.teamAIds)}</td>
+              <td>${teamLabel(match.teamBIds)}</td>
+              <td><strong>${match.scoreA}:${match.scoreB}</strong></td>
+              <td class="meta">${changedNames}</td>
+              <td class="action-cell">
+                <button class="mini-action" type="button" onclick="return handleEditMatchClick(event, '${match.id}')">編輯</button>
+                <button class="mini-danger" type="button" onclick="return handleDeleteMatchClick(event, '${match.id}')">刪除</button>
+              </td>
+            </tr>
+          `;
+        })
+        .join("")
+    : `<tr><td colspan="6">未有比賽紀錄。</td></tr>`;
+}
+
 function renderRuleCards() {
   byId("ruleCards").innerHTML = `
     <article class="team-card">
@@ -278,10 +396,10 @@ function renderRuleCards() {
       <strong>用類 Elo 預期勝率計算</strong>
     </article>
     <article class="team-card">
-      <h3>單場上限</h3>
-      <p class="meta">單場每人最多約加或扣 0.90 分，避免一次比賽令排名失真。</p>
-      <div class="bar"><span style="width: 45%"></span></div>
-      <strong>穩定但有感</strong>
+      <h3>歷史重算</h3>
+      <p class="meta">編輯或刪除舊比賽後，系統會由第一場開始重新計算所有人的分數。</p>
+      <div class="bar"><span style="width: 64%"></span></div>
+      <strong>修正錯誤更可靠</strong>
     </article>
   `;
 }
@@ -294,6 +412,17 @@ function validateMatchSelection() {
   return "";
 }
 
+function readMatchForm() {
+  return {
+    id: editingMatchId || `m-${Date.now()}`,
+    date: new Date().toISOString().slice(0, 10),
+    teamAIds: [byId("teamAPlayer1").value, byId("teamAPlayer2").value],
+    teamBIds: [byId("teamBPlayer1").value, byId("teamBPlayer2").value],
+    scoreA: Number(byId("scoreA").value),
+    scoreB: Number(byId("scoreB").value)
+  };
+}
+
 function renderPreview() {
   const preview = byId("ratingPreview");
   const error = validateMatchSelection();
@@ -304,74 +433,54 @@ function renderPreview() {
     return null;
   }
 
-  const scoreA = Number(byId("scoreA").value);
-  const scoreB = Number(byId("scoreB").value);
-  if (scoreA === scoreB) {
+  const match = readMatchForm();
+  if (match.scoreA === match.scoreB) {
     preview.className = "preview-box visible";
     preview.innerHTML = "<strong>比分不能平手，請確認比賽結果。</strong>";
     setStatus("比分不能平手，請確認比賽結果。", true);
     return null;
   }
 
-  const teamAIds = [byId("teamAPlayer1").value, byId("teamAPlayer2").value];
-  const teamBIds = [byId("teamBPlayer1").value, byId("teamBPlayer2").value];
-  const result = calculateMatchChange(teamAIds, teamBIds, scoreA, scoreB);
-  const teamAChange = result.changeA;
-  const teamBChange = result.changeB;
-  const winners = result.actualA === 1 ? teamAIds : teamBIds;
-
-  const rows = [...teamAIds, ...teamBIds]
+  const previewPlayers = computedPlayers();
+  const result = calculateMatchChange(match.teamAIds, match.teamBIds, match.scoreA, match.scoreB, previewPlayers);
+  const winners = result.actualA === 1 ? match.teamAIds : match.teamBIds;
+  const rows = [...match.teamAIds, ...match.teamBIds]
     .map((id) => {
-      const player = getPlayer(id);
-      const change = teamAIds.includes(id) ? teamAChange : teamBChange;
+      const player = previewPlayers.find((item) => item.id === id);
+      const change = match.teamAIds.includes(id) ? result.changeA : result.changeB;
       return `<p class="meta">${player.name}：${formatScore(player.rating)} → ${formatScore(clamp(player.rating + change, minRating, maxRating))} (${change >= 0 ? "+" : ""}${change.toFixed(2)})</p>`;
     })
     .join("");
 
   preview.className = "preview-box visible";
   preview.innerHTML = `
-    <strong>${winners.map((id) => getPlayer(id).name).join(" / ")} 勝出</strong>
+    <strong>${winners.map(playerName).join(" / ")} 勝出</strong>
     <p class="meta">比分差距倍率：${result.marginMultiplier.toFixed(2)} · A 隊預期勝率：${Math.round(result.expectedA * 100)}%</p>
     ${rows}
   `;
   setStatus("試算完成。按「儲存比賽」先會正式寫入。");
-  return { teamAIds, teamBIds, scoreA, scoreB, result };
+  return match;
 }
 
 function saveMatch(event) {
   if (event) event.preventDefault();
-  const preview = renderPreview();
-  if (!preview) return;
+  const match = renderPreview();
+  if (!match) return;
 
-  const today = new Date().toISOString().slice(0, 10);
-  const aWins = preview.scoreA > preview.scoreB;
-  state.players = state.players.map((player) => {
-    const isA = preview.teamAIds.includes(player.id);
-    const isB = preview.teamBIds.includes(player.id);
-    if (!isA && !isB) return player;
+  if (editingMatchId) {
+    state.matches = state.matches.map((item) => (item.id === editingMatchId ? { ...match, id: editingMatchId } : item));
+    setStatus("比賽已更新，排行榜已重新計算。");
+  } else {
+    state.matches.push(match);
+    setStatus(`比賽已儲存。目前共有 ${state.matches.length} 場比賽。`);
+  }
 
-    const change = isA ? preview.result.changeA : preview.result.changeB;
-    const pointsFor = isA ? preview.scoreA : preview.scoreB;
-    const pointsAgainst = isA ? preview.scoreB : preview.scoreA;
-    const won = isA ? aWins : !aWins;
-
-    return {
-      ...player,
-      rating: clamp(player.rating + change, minRating, maxRating),
-      wins: player.wins + (won ? 1 : 0),
-      losses: player.losses + (won ? 0 : 1),
-      pointsFor: player.pointsFor + pointsFor,
-      pointsAgainst: player.pointsAgainst + pointsAgainst,
-      recent: today
-    };
-  });
-
-  state.matchesRecorded += 1;
+  editingMatchId = "";
   saveState();
+  clearMatchEditingUi();
   renderAll();
   byId("ratingPreview").className = "preview-box visible";
   byId("ratingPreview").innerHTML = "<strong>比賽已儲存，個人排行榜已更新。</strong>";
-  setStatus(`比賽已儲存。目前共有 ${state.matchesRecorded} 場比賽。`);
 }
 
 function addPlayer(event) {
@@ -390,13 +499,7 @@ function addPlayer(event) {
   const player = {
     id: `p-${Date.now()}`,
     name,
-    gender: byId("newPlayerGender").value,
-    rating: initialRating,
-    wins: 0,
-    losses: 0,
-    pointsFor: 0,
-    pointsAgainst: 0,
-    recent: "-"
+    gender: byId("newPlayerGender").value
   };
   state.players.push(player);
   selectedPlayerId = player.id;
@@ -407,15 +510,54 @@ function addPlayer(event) {
 }
 
 function deletePlayer(playerId) {
-  const player = getPlayer(playerId);
+  const player = basePlayer(playerId);
   if (!player) return;
-  const confirmed = window.confirm(`確定刪除選手「${player.name}」？此動作會移除此選手的分數與戰績。`);
+  const relatedMatches = state.matches.filter((match) => [...match.teamAIds, ...match.teamBIds].includes(playerId)).length;
+  const confirmed = window.confirm(`確定刪除選手「${player.name}」？會同時刪除 ${relatedMatches} 場包含此選手的比賽紀錄。`);
   if (!confirmed) return;
   state.players = state.players.filter((item) => item.id !== playerId);
+  state.matches = state.matches.filter((match) => ![...match.teamAIds, ...match.teamBIds].includes(playerId));
   if (selectedPlayerId === playerId) selectedPlayerId = state.players.length ? state.players[0].id : "";
   saveState();
   renderAll();
   setStatus(`已刪除選手：${player.name}`);
+}
+
+function editMatch(matchId) {
+  const match = state.matches.find((item) => item.id === matchId);
+  if (!match) return;
+  editingMatchId = matchId;
+  byId("teamAPlayer1").value = match.teamAIds[0];
+  byId("teamAPlayer2").value = match.teamAIds[1];
+  byId("teamBPlayer1").value = match.teamBIds[0];
+  byId("teamBPlayer2").value = match.teamBIds[1];
+  byId("scoreA").value = match.scoreA;
+  byId("scoreB").value = match.scoreB;
+  byId("matchFormTitle").textContent = "編輯比賽紀錄";
+  byId("saveMatchButton").textContent = "更新比賽";
+  byId("cancelEditButton").classList.remove("hidden");
+  setStatus("正在編輯舊比賽。修改後按「更新比賽」。");
+  location.hash = "#match";
+  renderPreview();
+}
+
+function deleteMatch(matchId) {
+  const match = state.matches.find((item) => item.id === matchId);
+  if (!match) return;
+  const confirmed = window.confirm(`確定刪除 ${match.date} 的比賽紀錄 ${teamLabel(match.teamAIds)} ${match.scoreA}:${match.scoreB} ${teamLabel(match.teamBIds)}？`);
+  if (!confirmed) return;
+  state.matches = state.matches.filter((item) => item.id !== matchId);
+  if (editingMatchId === matchId) clearMatchEditingUi();
+  saveState();
+  renderAll();
+  setStatus("比賽已刪除，排行榜已重新計算。");
+}
+
+function clearMatchEditingUi() {
+  editingMatchId = "";
+  byId("matchFormTitle").textContent = "新增比賽紀錄";
+  byId("saveMatchButton").textContent = "儲存比賽";
+  byId("cancelEditButton").classList.add("hidden");
 }
 
 function resetData() {
@@ -423,9 +565,47 @@ function resetData() {
   if (!confirmed) return;
   state = normalizeState(clone(seedData));
   selectedPlayerId = state.players[0].id;
+  clearMatchEditingUi();
   saveState();
   renderAll();
   setStatus("已重設示範資料。");
+}
+
+function exportBackup() {
+  const payload = {
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    players: state.players,
+    matches: state.matches
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `badminton-rating-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  setStatus("已匯出備份。");
+}
+
+function importBackup(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const imported = JSON.parse(reader.result);
+      state = normalizeState(imported);
+      selectedPlayerId = state.players.length ? state.players[0].id : "";
+      clearMatchEditingUi();
+      saveState();
+      renderAll();
+      setStatus("備份已匯入，排行榜已重新計算。");
+    } catch (error) {
+      setStatus(`匯入失敗：${error.message}`, true);
+    }
+  };
+  reader.readAsText(file);
 }
 
 function bindEvents() {
@@ -468,36 +648,64 @@ function handleSaveMatchClick(event) {
   return false;
 }
 
+function handleCancelEditClick(event) {
+  if (event) event.preventDefault();
+  clearMatchEditingUi();
+  byId("ratingPreview").className = "preview-box";
+  setStatus("已取消編輯。");
+  return false;
+}
+
+function handleEditMatchClick(event, matchId) {
+  if (event) event.preventDefault();
+  editMatch(matchId);
+  return false;
+}
+
+function handleDeleteMatchClick(event, matchId) {
+  if (event) event.preventDefault();
+  deleteMatch(matchId);
+  return false;
+}
+
 function handleDeletePlayerClick(event, playerId) {
   if (event) {
     event.preventDefault();
     event.stopPropagation();
   }
-  try {
-    deletePlayer(playerId);
-  } catch (error) {
-    setStatus(`刪除選手失敗：${error.message}`, true);
-    console.error(error);
-  }
+  deletePlayer(playerId);
   return false;
 }
 
 function handleResetClick(event) {
   if (event) event.preventDefault();
-  try {
-    resetData();
-  } catch (error) {
-    setStatus(`重設失敗：${error.message}`, true);
-    console.error(error);
-  }
+  resetData();
+  return false;
+}
+
+function handleExportClick(event) {
+  if (event) event.preventDefault();
+  exportBackup();
+  return false;
+}
+
+function handleImportFileChange(event) {
+  const file = event.target.files && event.target.files[0];
+  if (file) importBackup(file);
+  event.target.value = "";
   return false;
 }
 
 window.handleAddPlayerClick = handleAddPlayerClick;
 window.handlePreviewClick = handlePreviewClick;
 window.handleSaveMatchClick = handleSaveMatchClick;
+window.handleCancelEditClick = handleCancelEditClick;
+window.handleEditMatchClick = handleEditMatchClick;
+window.handleDeleteMatchClick = handleDeleteMatchClick;
 window.handleDeletePlayerClick = handleDeletePlayerClick;
 window.handleResetClick = handleResetClick;
+window.handleExportClick = handleExportClick;
+window.handleImportFileChange = handleImportFileChange;
 window.addEventListener("error", (event) => {
   setStatus(`程式錯誤：${event.message}`, true);
 });
@@ -508,6 +716,7 @@ function renderAll() {
   renderPlayers();
   renderPlayerDetail();
   renderPlayerOptions();
+  renderHistory();
   renderRuleCards();
 }
 
