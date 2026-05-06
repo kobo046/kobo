@@ -1,0 +1,9 @@
+{
+  "appId": "com.kobo046.badmintonrating",
+  "appName": "羽毛球積分榜",
+  "webDir": "ios-web",
+  "bundledWebRuntime": false,
+  "ios": {
+    "contentInset": "automatic"
+  }
+}
