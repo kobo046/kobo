@@ -1,0 +1,9 @@
+{
+  "name": "羽毛球個人積分排行榜",
+  "short_name": "羽毛球積分",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0d3128",
+  "theme_color": "#16774f",
+  "lang": "zh-Hant"
+}
