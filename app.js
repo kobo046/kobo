@@ -2,7 +2,8 @@ const storageKey = "badmintonPlayerRating.v2";
 const minRating = 0;
 const initialRating = 5;
 const maxRating = 10;
-const baseK = 0.45;
+const baseK = 0.85;
+const maxSingleMatchChange = 1.35;
 
 const seedData = {
   players: [
@@ -159,7 +160,7 @@ function calculateMatchChange(teamAIds, teamBIds, scoreA, scoreB, players) {
   const marginRatio = Math.min(pointDiff / winnerScore, 0.75);
   const marginMultiplier = 1 + marginRatio;
   const rawChangeA = baseK * marginMultiplier * (actualA - expectedA);
-  const changeA = clamp(rawChangeA, -0.9, 0.9);
+  const changeA = clamp(rawChangeA, -maxSingleMatchChange, maxSingleMatchChange);
 
   return {
     actualA,
