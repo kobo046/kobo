@@ -1,0 +1,19 @@
+{
+  "name": "badminton-rating-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "羽毛球個人積分排行榜 iOS app wrapper",
+  "scripts": {
+    "build:ios-web": "node scripts/build-ios-web.mjs",
+    "cap:add:ios": "npm run build:ios-web && npx cap add ios",
+    "cap:sync:ios": "npm run build:ios-web && npx cap sync ios",
+    "cap:open:ios": "npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^7.4.4",
+    "@capacitor/ios": "^7.4.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.4"
+  }
+}
