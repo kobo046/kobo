@@ -12,8 +12,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=10" />
-    <link rel="stylesheet" href="cartoon-court-v10.css?v=10" />
+    <link rel="stylesheet" href="styles.css?v=12" />
+    <link rel="stylesheet" href="cartoon-court-v10.css?v=12" />
   </head>
   <body>
     <header class="app-header">
@@ -82,7 +82,7 @@
         </article>
       </section>
 
-      <section id="leaderboard" class="section workspace">
+      <section id="leaderboard" class="section workspace leaderboard-section">
         <div class="section-heading">
           <div>
             <p class="eyebrow">Live leaderboard</p>
@@ -108,7 +108,7 @@
         </div>
 
         <div class="table-wrap">
-          <table>
+          <table class="leaderboard-table">
             <thead>
               <tr>
                 <th>排名</th>
@@ -147,7 +147,7 @@
         <aside class="detail-panel" id="playerDetail" aria-live="polite"></aside>
       </section>
 
-      <section id="match" class="section match-section">
+      <section id="match" class="section match-section scorekeeper-section">
         <div class="section-heading">
           <div>
             <p class="eyebrow">Match entry</p>
@@ -187,6 +187,21 @@
               <input id="scoreB" type="number" min="0" max="99" value="17" />
             </label>
           </div>
+          <div class="team-input match-meta">
+            <h3>比賽資料</h3>
+            <label>
+              <span>日期</span>
+              <input id="matchDate" type="date" />
+            </label>
+            <label>
+              <span>場地</span>
+              <input id="matchLocation" type="text" placeholder="例如：天水圍體育館" maxlength="60" />
+            </label>
+            <label>
+              <span>備註</span>
+              <input id="matchNote" type="text" placeholder="例如：友誼賽／排名賽／練習賽" maxlength="80" />
+            </label>
+          </div>
           <div class="form-actions">
             <button class="secondary-action" id="previewButton" type="button" onclick="return handlePreviewClick(event)">試算變動</button>
             <button class="secondary-action hidden" id="cancelEditButton" type="button" onclick="return handleCancelEditClick(event)">取消編輯</button>
@@ -206,10 +221,12 @@
           <p class="hint">編輯或刪除任何一場，排行榜會由全部比賽重新計算。</p>
         </div>
         <div class="table-wrap">
-          <table>
+          <table class="history-table">
             <thead>
               <tr>
                 <th>日期</th>
+                <th>場地</th>
+                <th>備註</th>
                 <th>A 隊</th>
                 <th>B 隊</th>
                 <th>比分</th>
@@ -255,7 +272,10 @@
       <p>資料儲存在此瀏覽器的 localStorage。多人共用版本可再接 PostgreSQL / Supabase。</p>
     </footer>
 
-    <script src="app.js?v=10"></script>
-    <script src="scoring-v10.js?v=10"></script>
+    <script src="storage.js?v=12"></script>
+    <script src="scoring.js?v=12"></script>
+    <script src="render.js?v=12"></script>
+    <script src="events.js?v=12"></script>
+    <script src="app.js?v=12"></script>
   </body>
 </html>

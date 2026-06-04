@@ -9,8 +9,11 @@ const files = [
   "index.html",
   "styles.css",
   "cartoon-court-v10.css",
+  "storage.js",
+  "scoring.js",
+  "render.js",
+  "events.js",
   "app.js",
-  "scoring-v10.js",
   "manifest.webmanifest"
 ];
 
