@@ -9,6 +9,8 @@ const files = [
   "index.html",
   "styles.css",
   "cartoon-court-v10.css",
+  "supabase-config.js",
+  "cloud-storage.js",
   "storage.js",
   "scoring.js",
   "render.js",

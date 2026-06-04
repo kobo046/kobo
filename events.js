@@ -67,7 +67,7 @@ function renderPreview() {
   return match;
 }
 
-function saveMatch(event) {
+async function saveMatch(event) {
   if (event) event.preventDefault();
   const match = renderPreview();
   if (!match) return;
@@ -81,14 +81,14 @@ function saveMatch(event) {
   }
 
   editingMatchId = "";
-  saveState();
+  await saveState();
   clearMatchEditingUi();
   renderAll();
   byId("ratingPreview").className = "preview-box visible";
   byId("ratingPreview").innerHTML = "<strong>比賽已儲存，個人排行榜已更新。</strong>";
 }
 
-function addPlayer(event) {
+async function addPlayer(event) {
   if (event) event.preventDefault();
   const nameInput = byId("newPlayerName");
   const name = nameInput.value.trim();
@@ -109,12 +109,12 @@ function addPlayer(event) {
   state.players.push(player);
   selectedPlayerId = player.id;
   nameInput.value = "";
-  saveState();
+  await saveState();
   renderAll();
   setStatus(`已新增選手：${player.name}，初始分數 ${formatScore(initialRating)}。`);
 }
 
-function deletePlayer(playerId) {
+async function deletePlayer(playerId) {
   const player = basePlayer(playerId);
   if (!player) return;
   const relatedMatches = state.matches.filter((match) => [...match.teamAIds, ...match.teamBIds].includes(playerId)).length;
@@ -123,7 +123,7 @@ function deletePlayer(playerId) {
   state.players = state.players.filter((item) => item.id !== playerId);
   state.matches = state.matches.filter((match) => ![...match.teamAIds, ...match.teamBIds].includes(playerId));
   if (selectedPlayerId === playerId) selectedPlayerId = state.players.length ? state.players[0].id : "";
-  saveState();
+  await saveState();
   renderAll();
   setStatus(`已刪除選手：${player.name}`);
 }
@@ -149,14 +149,14 @@ function editMatch(matchId) {
   renderPreview();
 }
 
-function deleteMatch(matchId) {
+async function deleteMatch(matchId) {
   const match = state.matches.find((item) => item.id === matchId);
   if (!match) return;
   const confirmed = window.confirm(`確定刪除 ${match.date} 的比賽紀錄 ${teamLabel(match.teamAIds)} ${match.scoreA}:${match.scoreB} ${teamLabel(match.teamBIds)}？`);
   if (!confirmed) return;
   state.matches = state.matches.filter((item) => item.id !== matchId);
   if (editingMatchId === matchId) clearMatchEditingUi();
-  saveState();
+  await saveState();
   renderAll();
   setStatus("比賽已刪除，排行榜已重新計算。");
 }
@@ -168,13 +168,13 @@ function clearMatchEditingUi() {
   byId("cancelEditButton").classList.add("hidden");
 }
 
-function resetData() {
+async function resetData() {
   const confirmed = window.confirm("會清除目前瀏覽器已儲存的比賽同選手資料，並回復示範資料。確定要繼續？");
   if (!confirmed) return;
   state = normalizeState(clone(seedData));
   selectedPlayerId = state.players[0].id;
   clearMatchEditingUi();
-  saveState();
+  await saveState();
   renderAll();
   setStatus("已重設示範資料。");
 }
@@ -189,9 +189,9 @@ function bindEvents() {
   byId("resetButton").addEventListener("click", resetData);
 }
 
-function handleAddPlayerClick(event) {
+async function handleAddPlayerClick(event) {
   try {
-    addPlayer(event);
+    await addPlayer(event);
   } catch (error) {
     setStatus(`新增選手失敗：${error.message}`, true);
     console.error(error);
@@ -210,9 +210,9 @@ function handlePreviewClick(event) {
   return false;
 }
 
-function handleSaveMatchClick(event) {
+async function handleSaveMatchClick(event) {
   try {
-    saveMatch(event);
+    await saveMatch(event);
   } catch (error) {
     setStatus(`儲存比賽失敗：${error.message}`, true);
     console.error(error);
@@ -234,24 +234,24 @@ function handleEditMatchClick(event, matchId) {
   return false;
 }
 
-function handleDeleteMatchClick(event, matchId) {
+async function handleDeleteMatchClick(event, matchId) {
   if (event) event.preventDefault();
-  deleteMatch(matchId);
+  await deleteMatch(matchId);
   return false;
 }
 
-function handleDeletePlayerClick(event, playerId) {
+async function handleDeletePlayerClick(event, playerId) {
   if (event) {
     event.preventDefault();
     event.stopPropagation();
   }
-  deletePlayer(playerId);
+  await deletePlayer(playerId);
   return false;
 }
 
-function handleResetClick(event) {
+async function handleResetClick(event) {
   if (event) event.preventDefault();
-  resetData();
+  await resetData();
   return false;
 }
 

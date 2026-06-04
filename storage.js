@@ -60,7 +60,7 @@ function normalizeState(input) {
   };
 }
 
-function loadState() {
+function loadLocalState() {
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey));
     if (saved && saved.players) return normalizeState(saved);
@@ -70,8 +70,48 @@ function loadState() {
   return normalizeState(clone(seedData));
 }
 
-function saveState() {
+async function loadState() {
+  const localState = loadLocalState();
+  if (!window.cloudSync || !window.cloudSync.isConfigured()) return localState;
+
+  try {
+    const cloudState = await window.cloudSync.loadStateFromCloud();
+    const nextState = normalizeState(cloudState || localState);
+    localStorage.setItem(storageKey, JSON.stringify(nextState));
+    return nextState;
+  } catch (error) {
+    console.error(error);
+    setStatus(`雲端載入失敗，暫時使用本機資料：${error.message}`, true);
+    return localState;
+  }
+}
+
+async function saveState() {
   localStorage.setItem(storageKey, JSON.stringify(state));
+  if (!window.cloudSync || !window.cloudSync.isConfigured()) return;
+
+  try {
+    await window.cloudSync.saveStateToCloud(state);
+  } catch (error) {
+    console.error(error);
+    setStatus(`雲端儲存失敗，本機已暫存：${error.message}`, true);
+  }
+}
+
+function subscribeToStateChanges(onRemoteState) {
+  if (!window.cloudSync || !window.cloudSync.isConfigured()) return;
+  window.cloudSync.subscribe((remoteState) => {
+    state = normalizeState(remoteState);
+    localStorage.setItem(storageKey, JSON.stringify(state));
+    onRemoteState(state);
+  });
+}
+
+function storageModeLabel() {
+  if (window.cloudSync && window.cloudSync.isConfigured()) {
+    return `雲端同步模式：${window.cloudSync.clubId()}`;
+  }
+  return "本機模式：資料只會存在這部裝置。設定 Supabase 後，其他人先會見到同一份分數。";
 }
 
 function exportBackup() {
@@ -95,15 +135,15 @@ function exportBackup() {
 
 function importBackup(file) {
   const reader = new FileReader();
-  reader.onload = () => {
+  reader.onload = async () => {
     try {
       const imported = JSON.parse(reader.result);
       state = normalizeState(imported);
       selectedPlayerId = state.players.length ? state.players[0].id : "";
       clearMatchEditingUi();
-      saveState();
+      await saveState();
       renderAll();
-      setStatus("備份已匯入，排行榜已重新計算。");
+      setStatus(window.cloudSync && window.cloudSync.isConfigured() ? "備份已匯入雲端，排行榜已重新計算。" : "備份已匯入，排行榜已重新計算。");
     } catch (error) {
       setStatus(`匯入失敗：${error.message}`, true);
     }

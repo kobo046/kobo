@@ -1,4 +1,4 @@
-let state = loadState();
+let state = normalizeState(clone(seedData));
 let selectedPlayerId = state.players.length ? state.players[0].id : "";
 let editingMatchId = "";
 let matchSummaries = [];
@@ -13,6 +13,22 @@ function renderAll() {
   renderRuleCards();
 }
 
-bindEvents();
-renderAll();
-setStatus("系統已載入，可以新增選手同比賽。");
+async function initializeApp() {
+  state = await loadState();
+  selectedPlayerId = state.players.length ? state.players[0].id : "";
+  bindEvents();
+  renderAll();
+  subscribeToStateChanges(() => {
+    if (!state.players.some((player) => player.id === selectedPlayerId)) {
+      selectedPlayerId = state.players.length ? state.players[0].id : "";
+    }
+    renderAll();
+    setStatus("雲端資料已更新，排行榜已同步。");
+  });
+  setStatus(storageModeLabel());
+}
+
+initializeApp().catch((error) => {
+  console.error(error);
+  setStatus(`系統載入失敗：${error.message}`, true);
+});

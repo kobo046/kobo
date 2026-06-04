@@ -1,6 +1,6 @@
 # 羽毛球個人積分排行榜
 
-一個手機友善的羽毛球雙打即場記分與個人積分排行榜網站。資料目前儲存在瀏覽器的 `localStorage`，不同裝置會有各自的資料；多人同步版本可再接 Supabase。
+一個手機友善的羽毛球雙打即場記分與個人積分排行榜網站。預設會使用瀏覽器的 `localStorage`，填入 Supabase 設定後可升級成多人共用同一份資料。
 
 ## 本機打開
 
@@ -45,6 +45,18 @@ npm test
 - `manifest.webmanifest`
 
 所以部署到 GitHub Pages 的子路徑，例如 `/kobo/`，可以正常運作。
+
+## Supabase 多人同步
+
+網站已包含 Supabase 同步 adapter：
+
+- `supabase-config.js`
+- `cloud-storage.js`
+- `supabase-schema.sql`
+
+未填 Supabase 設定前，網站會顯示本機模式。設定好 Supabase 後，同一個 `clubId` 的所有裝置會共用同一份選手、比賽和排行榜資料。
+
+詳細步驟見 `SUPABASE_SETUP.md`。
 
 ### 使用 GitHub Actions
 
