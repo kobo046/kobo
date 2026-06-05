@@ -1,4 +1,5 @@
 const storageKey = "badmintonPlayerRating.v2";
+const preCloudBackupKey = `${storageKey}.preCloudBackup`;
 
 const seedData = {
   players: [
@@ -70,9 +71,17 @@ function loadLocalState() {
   return normalizeState(clone(seedData));
 }
 
-function hasSavedLocalState() {
+function readSavedState(key = storageKey) {
   try {
-    const saved = JSON.parse(localStorage.getItem(storageKey));
+    return JSON.parse(localStorage.getItem(key));
+  } catch (error) {
+    return null;
+  }
+}
+
+function hasMeaningfulLocalData(value) {
+  const saved = value && Array.isArray(value.players) && Array.isArray(value.matches) ? value : readSavedState();
+  try {
     if (!saved || !Array.isArray(saved.players) || !Array.isArray(saved.matches)) return false;
     if (saved.matches.length > 0) return true;
     if (saved.players.length !== seedData.players.length) return true;
@@ -81,6 +90,11 @@ function hasSavedLocalState() {
   } catch (error) {
     return false;
   }
+}
+
+function rememberLocalBeforeCloud(localState) {
+  if (!hasMeaningfulLocalData(localState)) return;
+  localStorage.setItem(preCloudBackupKey, JSON.stringify(localState));
 }
 
 function isEmptyCloudState(cloudState) {
@@ -96,13 +110,22 @@ function isEmptyCloudState(cloudState) {
 async function loadState() {
   const localState = loadLocalState();
   if (!window.cloudSync || !window.cloudSync.isConfigured()) return localState;
+  rememberLocalBeforeCloud(localState);
 
   try {
     const cloudState = await window.cloudSync.loadStateFromCloud();
-    if (isEmptyCloudState(cloudState) && hasSavedLocalState()) {
-      await window.cloudSync.saveStateToCloud(localState);
+    if (isEmptyCloudState(cloudState)) {
+      const backupState = normalizeState(readSavedState(preCloudBackupKey) || {});
+      const bootstrapState = hasMeaningfulLocalData(localState) ? localState : backupState;
+      if (hasMeaningfulLocalData(bootstrapState)) {
+        await window.cloudSync.saveStateToCloud(bootstrapState);
+        localStorage.setItem(storageKey, JSON.stringify(bootstrapState));
+        setStatus("雲端未有資料，已把這部機的本機資料上傳做共享資料。");
+        return bootstrapState;
+      }
+
       localStorage.setItem(storageKey, JSON.stringify(localState));
-      setStatus("雲端未有資料，已把這部機的本機資料上傳做共享資料。");
+      setStatus("雲端未有資料。請在有舊分數的裝置按「上傳本機資料到雲端」。");
       return localState;
     }
 
@@ -127,6 +150,35 @@ async function saveState() {
     console.error(error);
     setStatus(`雲端儲存失敗，本機已暫存：${error.message}`, true);
   }
+}
+
+async function uploadLocalStateToCloud() {
+  if (!window.cloudSync || !window.cloudSync.isConfigured()) {
+    setStatus("未設定 Supabase，暫時未能上傳到雲端。", true);
+    return false;
+  }
+
+  const currentState = normalizeState(state || {});
+  const savedState = normalizeState(readSavedState() || {});
+  const backupState = normalizeState(readSavedState(preCloudBackupKey) || {});
+  const localState = hasMeaningfulLocalData(currentState)
+    ? currentState
+    : hasMeaningfulLocalData(savedState)
+      ? savedState
+      : backupState;
+
+  if (!hasMeaningfulLocalData(localState)) {
+    setStatus("這部機未找到可上傳的本機分數資料。請在有舊分數的裝置操作，或先匯入備份。", true);
+    return false;
+  }
+
+  state = localState;
+  await window.cloudSync.saveStateToCloud(state);
+  localStorage.setItem(storageKey, JSON.stringify(state));
+  localStorage.setItem(preCloudBackupKey, JSON.stringify(state));
+  renderAll();
+  setStatus("已把這部機的本機資料上傳到雲端，其他裝置重新整理後會同步。");
+  return true;
 }
 
 function subscribeToStateChanges(onRemoteState) {

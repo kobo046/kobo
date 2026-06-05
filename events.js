@@ -261,6 +261,17 @@ function handleExportClick(event) {
   return false;
 }
 
+async function handleUploadCloudClick(event) {
+  if (event) event.preventDefault();
+  try {
+    await uploadLocalStateToCloud();
+  } catch (error) {
+    setStatus(`上傳雲端失敗：${error.message}`, true);
+    console.error(error);
+  }
+  return false;
+}
+
 function handleImportFileChange(event) {
   const file = event.target.files && event.target.files[0];
   if (file) importBackup(file);
@@ -277,6 +288,7 @@ window.handleDeleteMatchClick = handleDeleteMatchClick;
 window.handleDeletePlayerClick = handleDeletePlayerClick;
 window.handleResetClick = handleResetClick;
 window.handleExportClick = handleExportClick;
+window.handleUploadCloudClick = handleUploadCloudClick;
 window.handleImportFileChange = handleImportFileChange;
 window.addEventListener("error", (event) => {
   setStatus(`程式錯誤：${event.message}`, true);
