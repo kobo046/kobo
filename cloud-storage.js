@@ -21,6 +21,10 @@ window.cloudSync = (() => {
     return config().clubId || "default";
   }
 
+  function transportLabel() {
+    return hasSupabaseClient() ? "SDK" : "REST";
+  }
+
   function getClient() {
     if (!isConfigured() || !hasSupabaseClient()) return null;
     if (!client) {
@@ -343,6 +347,7 @@ window.cloudSync = (() => {
   return {
     isConfigured,
     clubId,
+    transportLabel,
     loadStateFromCloud,
     saveStateToCloud,
     subscribe

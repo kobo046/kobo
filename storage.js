@@ -142,13 +142,41 @@ async function loadState() {
 async function saveState() {
   state = normalizeState(state || {});
   localStorage.setItem(storageKey, JSON.stringify(state));
-  if (!window.cloudSync || !window.cloudSync.isConfigured()) return;
+  if (!window.cloudSync || !window.cloudSync.isConfigured()) {
+    return {
+      cloud: false,
+      error: false,
+      message: "只存本機：未連接 Supabase。"
+    };
+  }
 
   try {
     await window.cloudSync.saveStateToCloud(state);
+    const cloudState = await window.cloudSync.loadStateFromCloud();
+    const cloudPlayers = Array.isArray(cloudState && cloudState.players) ? cloudState.players.length : 0;
+    const cloudMatches = Array.isArray(cloudState && cloudState.matches) ? cloudState.matches.length : 0;
+
+    if (cloudPlayers >= state.players.length && cloudMatches >= state.matches.length) {
+      return {
+        cloud: true,
+        error: false,
+        message: `已同步到雲端（${cloudPlayers} 位選手，${cloudMatches} 場比賽）。`
+      };
+    }
+
+    return {
+      cloud: false,
+      error: true,
+      message: `雲端同步未完成：本機有 ${state.players.length} 位選手、${state.matches.length} 場比賽，但雲端只有 ${cloudPlayers} 位選手、${cloudMatches} 場比賽。`
+    };
   } catch (error) {
     console.error(error);
     setStatus(`雲端儲存失敗，本機已暫存：${error.message}`, true);
+    return {
+      cloud: false,
+      error: true,
+      message: `雲端儲存失敗，本機已暫存：${error.message}`
+    };
   }
 }
 
@@ -174,10 +202,17 @@ async function uploadLocalStateToCloud() {
 
   state = localState;
   await window.cloudSync.saveStateToCloud(state);
+  const cloudState = await window.cloudSync.loadStateFromCloud();
+  const cloudPlayers = Array.isArray(cloudState && cloudState.players) ? cloudState.players.length : 0;
+  const cloudMatches = Array.isArray(cloudState && cloudState.matches) ? cloudState.matches.length : 0;
   localStorage.setItem(storageKey, JSON.stringify(state));
   localStorage.setItem(preCloudBackupKey, JSON.stringify(state));
   renderAll();
-  setStatus("已把這部機的本機資料上傳到雲端，其他裝置重新整理後會同步。");
+  if (cloudPlayers >= state.players.length && cloudMatches >= state.matches.length) {
+    setStatus(`已把本機資料上傳到雲端（${cloudPlayers} 位選手，${cloudMatches} 場比賽），其他裝置重新整理後會同步。`);
+  } else {
+    setStatus(`上傳後驗證未完成：本機有 ${state.players.length} 位選手、${state.matches.length} 場比賽，但雲端只有 ${cloudPlayers} 位選手、${cloudMatches} 場比賽。`, true);
+  }
   return true;
 }
 
@@ -192,7 +227,8 @@ function subscribeToStateChanges(onRemoteState) {
 
 function storageModeLabel() {
   if (window.cloudSync && window.cloudSync.isConfigured()) {
-    return `雲端同步模式：${window.cloudSync.clubId()}`;
+    const transport = window.cloudSync.transportLabel ? window.cloudSync.transportLabel() : "Supabase";
+    return `雲端同步模式：${window.cloudSync.clubId()}（${transport}）`;
   }
   return "本機模式：資料只會存在這部裝置。設定 Supabase 後，其他人先會見到同一份分數。";
 }

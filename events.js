@@ -81,11 +81,16 @@ async function saveMatch(event) {
   }
 
   editingMatchId = "";
-  await saveState();
+  const syncResult = await saveState();
   clearMatchEditingUi();
   renderAll();
   byId("ratingPreview").className = "preview-box visible";
   byId("ratingPreview").innerHTML = "<strong>比賽已儲存，個人排行榜已更新。</strong>";
+  if (syncResult && syncResult.cloud) {
+    setStatus(`比賽已儲存，${syncResult.message}`);
+  } else if (syncResult) {
+    setStatus(`比賽已儲存，但${syncResult.message}`, Boolean(syncResult.error));
+  }
 }
 
 async function addPlayer(event) {
