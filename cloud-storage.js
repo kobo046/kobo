@@ -52,6 +52,10 @@ window.cloudSync = (() => {
     return result.data;
   }
 
+  function asArray(value) {
+    return Array.isArray(value) ? value : [];
+  }
+
   async function loadStateFromCloud() {
     const supabaseClient = getClient();
     if (!supabaseClient) return null;
@@ -77,8 +81,8 @@ window.cloudSync = (() => {
     ]);
 
     return {
-      players: players.map(mapPlayer),
-      matches: matches.map(mapMatch)
+      players: asArray(players).map(mapPlayer),
+      matches: asArray(matches).map(mapMatch)
     };
   }
 
@@ -103,11 +107,12 @@ window.cloudSync = (() => {
     if (!supabaseClient || saving) return;
     saving = true;
     try {
+      const safeState = normalizeState(nextState || {});
       const currentClubId = clubId();
       const now = new Date().toISOString();
       await ensureClub();
 
-      const playerRows = nextState.players.map((player) => ({
+      const playerRows = safeState.players.map((player) => ({
         club_id: currentClubId,
         id: player.id,
         name: player.name,
@@ -121,10 +126,10 @@ window.cloudSync = (() => {
         );
       }
 
-      const existingPlayers = await throwIfError(
+      const existingPlayers = asArray(await throwIfError(
         supabaseClient.from("badminton_players").select("id").eq("club_id", currentClubId).eq("is_active", true)
-      );
-      const activePlayerIds = new Set(nextState.players.map((player) => player.id));
+      ));
+      const activePlayerIds = new Set(safeState.players.map((player) => player.id));
       const inactivePlayerIds = existingPlayers.map((player) => player.id).filter((id) => !activePlayerIds.has(id));
       if (inactivePlayerIds.length) {
         await throwIfError(
@@ -136,7 +141,7 @@ window.cloudSync = (() => {
         );
       }
 
-      const matchRows = nextState.matches.map((match) => ({
+      const matchRows = safeState.matches.map((match) => ({
         club_id: currentClubId,
         id: match.id,
         match_date: match.date || new Date().toISOString().slice(0, 10),
@@ -157,10 +162,10 @@ window.cloudSync = (() => {
         );
       }
 
-      const existingMatches = await throwIfError(
+      const existingMatches = asArray(await throwIfError(
         supabaseClient.from("badminton_matches").select("id").eq("club_id", currentClubId).is("deleted_at", null)
-      );
-      const activeMatchIds = new Set(nextState.matches.map((match) => match.id));
+      ));
+      const activeMatchIds = new Set(safeState.matches.map((match) => match.id));
       const deletedMatchIds = existingMatches.map((match) => match.id).filter((id) => !activeMatchIds.has(id));
       if (deletedMatchIds.length) {
         await throwIfError(

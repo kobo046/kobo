@@ -117,6 +117,7 @@ async function loadState() {
 }
 
 async function saveState() {
+  state = normalizeState(state || {});
   localStorage.setItem(storageKey, JSON.stringify(state));
   if (!window.cloudSync || !window.cloudSync.isConfigured()) return;
 
