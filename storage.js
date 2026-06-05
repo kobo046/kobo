@@ -70,12 +70,42 @@ function loadLocalState() {
   return normalizeState(clone(seedData));
 }
 
+function hasSavedLocalState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(storageKey));
+    if (!saved || !Array.isArray(saved.players) || !Array.isArray(saved.matches)) return false;
+    if (saved.matches.length > 0) return true;
+    if (saved.players.length !== seedData.players.length) return true;
+    const seedNames = new Set(seedData.players.map((player) => player.name));
+    return saved.players.some((player) => !seedNames.has(player.name));
+  } catch (error) {
+    return false;
+  }
+}
+
+function isEmptyCloudState(cloudState) {
+  return (
+    cloudState &&
+    Array.isArray(cloudState.players) &&
+    Array.isArray(cloudState.matches) &&
+    cloudState.players.length === 0 &&
+    cloudState.matches.length === 0
+  );
+}
+
 async function loadState() {
   const localState = loadLocalState();
   if (!window.cloudSync || !window.cloudSync.isConfigured()) return localState;
 
   try {
     const cloudState = await window.cloudSync.loadStateFromCloud();
+    if (isEmptyCloudState(cloudState) && hasSavedLocalState()) {
+      await window.cloudSync.saveStateToCloud(localState);
+      localStorage.setItem(storageKey, JSON.stringify(localState));
+      setStatus("雲端未有資料，已把這部機的本機資料上傳做共享資料。");
+      return localState;
+    }
+
     const nextState = normalizeState(cloudState || localState);
     localStorage.setItem(storageKey, JSON.stringify(nextState));
     return nextState;
