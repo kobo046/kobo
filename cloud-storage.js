@@ -10,7 +10,11 @@ window.cloudSync = (() => {
 
   function isConfigured() {
     const current = config();
-    return Boolean(current.url && current.anonKey && window.supabase && window.supabase.createClient);
+    return Boolean(current.url && current.anonKey);
+  }
+
+  function hasSupabaseClient() {
+    return Boolean(window.supabase && window.supabase.createClient);
   }
 
   function clubId() {
@@ -18,12 +22,62 @@ window.cloudSync = (() => {
   }
 
   function getClient() {
-    if (!isConfigured()) return null;
+    if (!isConfigured() || !hasSupabaseClient()) return null;
     if (!client) {
       const current = config();
       client = window.supabase.createClient(current.url, current.anonKey);
     }
     return client;
+  }
+
+  function restBaseUrl() {
+    return config().url.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
+  }
+
+  function restHeaders(extra = {}) {
+    const key = config().anonKey;
+    return {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      "Content-Type": "application/json",
+      ...extra
+    };
+  }
+
+  async function restRequest(table, params, options = {}) {
+    const query = params instanceof URLSearchParams ? params.toString() : "";
+    const response = await fetch(`${restBaseUrl()}/rest/v1/${table}${query ? `?${query}` : ""}`, {
+      ...options,
+      headers: restHeaders(options.headers || {})
+    });
+    const text = await response.text();
+    if (!response.ok) {
+      throw new Error(text || `${table} request failed (${response.status})`);
+    }
+    return text ? JSON.parse(text) : null;
+  }
+
+  async function restSelect(table, filters = {}) {
+    const params = new URLSearchParams(filters);
+    return asArray(await restRequest(table, params, { method: "GET" }));
+  }
+
+  async function restUpsert(table, rows, conflictColumns) {
+    const params = new URLSearchParams({ on_conflict: conflictColumns });
+    return restRequest(table, params, {
+      method: "POST",
+      headers: { Prefer: "resolution=merge-duplicates,return=representation" },
+      body: JSON.stringify(rows)
+    });
+  }
+
+  async function restUpdate(table, filters, values) {
+    const params = new URLSearchParams(filters);
+    return restRequest(table, params, {
+      method: "PATCH",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify(values)
+    });
   }
 
   function mapPlayer(row) {
@@ -58,8 +112,29 @@ window.cloudSync = (() => {
 
   async function loadStateFromCloud() {
     const supabaseClient = getClient();
-    if (!supabaseClient) return null;
     const currentClubId = clubId();
+    if (!supabaseClient) {
+      const [players, matches] = await Promise.all([
+        restSelect("badminton_players", {
+          select: "id,name,gender,created_at",
+          club_id: `eq.${currentClubId}`,
+          is_active: "eq.true",
+          order: "created_at.asc"
+        }),
+        restSelect("badminton_matches", {
+          select: "*",
+          club_id: `eq.${currentClubId}`,
+          deleted_at: "is.null",
+          order: "match_date.asc,created_at.asc"
+        })
+      ]);
+
+      return {
+        players: asArray(players).map(mapPlayer),
+        matches: asArray(matches).map(mapMatch)
+      };
+    }
+
     const [players, matches] = await Promise.all([
       throwIfError(
         supabaseClient
@@ -88,8 +163,20 @@ window.cloudSync = (() => {
 
   async function ensureClub() {
     const supabaseClient = getClient();
-    if (!supabaseClient) return;
     const now = new Date().toISOString();
+    if (!supabaseClient) {
+      await restUpsert(
+        "badminton_clubs",
+        {
+          id: clubId(),
+          name: "Badminton Club",
+          updated_at: now
+        },
+        "id"
+      );
+      return;
+    }
+
     await throwIfError(
       supabaseClient.from("badminton_clubs").upsert(
         {
@@ -104,7 +191,7 @@ window.cloudSync = (() => {
 
   async function saveStateToCloud(nextState) {
     const supabaseClient = getClient();
-    if (!supabaseClient || saving) return;
+    if (!isConfigured() || saving) return;
     saving = true;
     try {
       const safeState = normalizeState(nextState || {});
@@ -121,24 +208,44 @@ window.cloudSync = (() => {
         updated_at: now
       }));
       if (playerRows.length) {
-        await throwIfError(
-          supabaseClient.from("badminton_players").upsert(playerRows, { onConflict: "club_id,id" })
-        );
+        if (supabaseClient) {
+          await throwIfError(
+            supabaseClient.from("badminton_players").upsert(playerRows, { onConflict: "club_id,id" })
+          );
+        } else {
+          await restUpsert("badminton_players", playerRows, "club_id,id");
+        }
       }
 
-      const existingPlayers = asArray(await throwIfError(
-        supabaseClient.from("badminton_players").select("id").eq("club_id", currentClubId).eq("is_active", true)
-      ));
+      const existingPlayers = asArray(
+        supabaseClient
+          ? await throwIfError(
+              supabaseClient.from("badminton_players").select("id").eq("club_id", currentClubId).eq("is_active", true)
+            )
+          : await restSelect("badminton_players", {
+              select: "id",
+              club_id: `eq.${currentClubId}`,
+              is_active: "eq.true"
+            })
+      );
       const activePlayerIds = new Set(safeState.players.map((player) => player.id));
       const inactivePlayerIds = existingPlayers.map((player) => player.id).filter((id) => !activePlayerIds.has(id));
       if (inactivePlayerIds.length) {
-        await throwIfError(
-          supabaseClient
-            .from("badminton_players")
-            .update({ is_active: false, updated_at: now })
-            .eq("club_id", currentClubId)
-            .in("id", inactivePlayerIds)
-        );
+        if (supabaseClient) {
+          await throwIfError(
+            supabaseClient
+              .from("badminton_players")
+              .update({ is_active: false, updated_at: now })
+              .eq("club_id", currentClubId)
+              .in("id", inactivePlayerIds)
+          );
+        } else {
+          await restUpdate(
+            "badminton_players",
+            { club_id: `eq.${currentClubId}`, id: `in.(${inactivePlayerIds.join(",")})` },
+            { is_active: false, updated_at: now }
+          );
+        }
       }
 
       const matchRows = safeState.matches.map((match) => ({
@@ -157,24 +264,44 @@ window.cloudSync = (() => {
         updated_at: now
       }));
       if (matchRows.length) {
-        await throwIfError(
-          supabaseClient.from("badminton_matches").upsert(matchRows, { onConflict: "club_id,id" })
-        );
+        if (supabaseClient) {
+          await throwIfError(
+            supabaseClient.from("badminton_matches").upsert(matchRows, { onConflict: "club_id,id" })
+          );
+        } else {
+          await restUpsert("badminton_matches", matchRows, "club_id,id");
+        }
       }
 
-      const existingMatches = asArray(await throwIfError(
-        supabaseClient.from("badminton_matches").select("id").eq("club_id", currentClubId).is("deleted_at", null)
-      ));
+      const existingMatches = asArray(
+        supabaseClient
+          ? await throwIfError(
+              supabaseClient.from("badminton_matches").select("id").eq("club_id", currentClubId).is("deleted_at", null)
+            )
+          : await restSelect("badminton_matches", {
+              select: "id",
+              club_id: `eq.${currentClubId}`,
+              deleted_at: "is.null"
+            })
+      );
       const activeMatchIds = new Set(safeState.matches.map((match) => match.id));
       const deletedMatchIds = existingMatches.map((match) => match.id).filter((id) => !activeMatchIds.has(id));
       if (deletedMatchIds.length) {
-        await throwIfError(
-          supabaseClient
-            .from("badminton_matches")
-            .update({ deleted_at: now, updated_at: now })
-            .eq("club_id", currentClubId)
-            .in("id", deletedMatchIds)
-        );
+        if (supabaseClient) {
+          await throwIfError(
+            supabaseClient
+              .from("badminton_matches")
+              .update({ deleted_at: now, updated_at: now })
+              .eq("club_id", currentClubId)
+              .in("id", deletedMatchIds)
+          );
+        } else {
+          await restUpdate(
+            "badminton_matches",
+            { club_id: `eq.${currentClubId}`, id: `in.(${deletedMatchIds.join(",")})` },
+            { deleted_at: now, updated_at: now }
+          );
+        }
       }
     } finally {
       saving = false;
