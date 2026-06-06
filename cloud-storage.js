@@ -22,7 +22,7 @@ window.cloudSync = (() => {
   }
 
   function transportLabel() {
-    return hasSupabaseClient() ? "SDK" : "REST";
+    return "REST";
   }
 
   function getClient() {
@@ -120,7 +120,7 @@ window.cloudSync = (() => {
   }
 
   async function loadStateFromCloud() {
-    const supabaseClient = getClient();
+    const supabaseClient = null;
     const currentClubId = clubId();
     if (!supabaseClient) {
       const [players, matches] = await Promise.all([
@@ -171,7 +171,7 @@ window.cloudSync = (() => {
   }
 
   async function ensureClub() {
-    const supabaseClient = getClient();
+    const supabaseClient = null;
     const now = new Date().toISOString();
     if (!supabaseClient) {
       await restUpsert(
@@ -199,7 +199,7 @@ window.cloudSync = (() => {
   }
 
   async function saveStateToCloud(nextState) {
-    const supabaseClient = getClient();
+    const supabaseClient = null;
     if (!isConfigured() || saving) return;
     saving = true;
     try {
@@ -351,7 +351,7 @@ window.cloudSync = (() => {
 
   async function testConnection() {
     if (!isConfigured()) throw new Error("未設定 Supabase URL 或 publishable key。");
-    const supabaseClient = getClient();
+    const supabaseClient = null;
     const testId = `sync-check-${Date.now()}`;
     const now = new Date().toISOString();
     const row = {
