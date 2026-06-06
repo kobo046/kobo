@@ -259,6 +259,7 @@
           <p class="hint">未接資料庫前，建議定期匯出備份。</p>
         </div>
         <div class="backup-actions">
+          <button class="secondary-action" type="button" onclick="return handleCloudCheckClick(event)">檢查雲端連線</button>
           <button class="primary-action" type="button" onclick="return handleUploadCloudClick(event)">上傳本機資料到雲端</button>
           <button class="primary-action" type="button" onclick="return handleExportClick(event)">匯出備份</button>
           <label class="secondary-action import-button">
@@ -274,12 +275,12 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js?v=16"></script>
-    <script src="cloud-storage.js?v=16"></script>
-    <script src="storage.js?v=16"></script>
-    <script src="scoring.js?v=16"></script>
-    <script src="render.js?v=16"></script>
-    <script src="events.js?v=16"></script>
-    <script src="app.js?v=16"></script>
+    <script src="supabase-config.js?v=17"></script>
+    <script src="cloud-storage.js?v=17"></script>
+    <script src="storage.js?v=17"></script>
+    <script src="scoring.js?v=17"></script>
+    <script src="render.js?v=17"></script>
+    <script src="events.js?v=17"></script>
+    <script src="app.js?v=17"></script>
   </body>
 </html>

@@ -277,6 +277,22 @@ async function handleUploadCloudClick(event) {
   return false;
 }
 
+async function handleCloudCheckClick(event) {
+  if (event) event.preventDefault();
+  try {
+    if (!window.cloudSync || !window.cloudSync.testConnection) {
+      setStatus("雲端檢查失敗：同步程式未載入。", true);
+      return false;
+    }
+    const result = await window.cloudSync.testConnection();
+    setStatus(`雲端連線正常，可以寫入 Supabase（${result.transport}）。`);
+  } catch (error) {
+    setStatus(`雲端檢查失敗：${error.message}`, true);
+    console.error(error);
+  }
+  return false;
+}
+
 function handleImportFileChange(event) {
   const file = event.target.files && event.target.files[0];
   if (file) importBackup(file);
@@ -294,6 +310,7 @@ window.handleDeletePlayerClick = handleDeletePlayerClick;
 window.handleResetClick = handleResetClick;
 window.handleExportClick = handleExportClick;
 window.handleUploadCloudClick = handleUploadCloudClick;
+window.handleCloudCheckClick = handleCloudCheckClick;
 window.handleImportFileChange = handleImportFileChange;
 window.addEventListener("error", (event) => {
   setStatus(`程式錯誤：${event.message}`, true);

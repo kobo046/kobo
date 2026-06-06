@@ -84,6 +84,11 @@ window.cloudSync = (() => {
     });
   }
 
+  async function restDelete(table, filters) {
+    const params = new URLSearchParams(filters);
+    return restRequest(table, params, { method: "DELETE" });
+  }
+
   function mapPlayer(row) {
     return {
       id: row.id,
@@ -344,12 +349,38 @@ window.cloudSync = (() => {
       .subscribe();
   }
 
+  async function testConnection() {
+    if (!isConfigured()) throw new Error("未設定 Supabase URL 或 publishable key。");
+    const supabaseClient = getClient();
+    const testId = `sync-check-${Date.now()}`;
+    const now = new Date().toISOString();
+    const row = {
+      id: testId,
+      name: "Sync check",
+      updated_at: now
+    };
+
+    if (supabaseClient) {
+      await throwIfError(supabaseClient.from("badminton_clubs").upsert(row, { onConflict: "id" }));
+      await throwIfError(supabaseClient.from("badminton_clubs").delete().eq("id", testId));
+    } else {
+      await restUpsert("badminton_clubs", row, "id");
+      await restDelete("badminton_clubs", { id: `eq.${testId}` });
+    }
+
+    return {
+      ok: true,
+      transport: transportLabel()
+    };
+  }
+
   return {
     isConfigured,
     clubId,
     transportLabel,
     loadStateFromCloud,
     saveStateToCloud,
+    testConnection,
     subscribe
   };
 })();
