@@ -188,6 +188,9 @@ function bindEvents() {
   if (!byId("matchDate").value) byId("matchDate").value = new Date().toISOString().slice(0, 10);
   byId("searchInput").addEventListener("input", renderLeaderboard);
   byId("sortSelect").addEventListener("change", renderLeaderboard);
+  byId("leaderboardAllButton").addEventListener("click", () => setLeaderboardMode("all"));
+  byId("leaderboardDayButton").addEventListener("click", () => setLeaderboardMode("day"));
+  byId("leaderboardDate").addEventListener("change", (event) => setLeaderboardDate(event.target.value));
   byId("historyAllButton").addEventListener("click", () => setHistoryMode("all"));
   byId("historyDayButton").addEventListener("click", () => setHistoryMode("day"));
   byId("historyDate").addEventListener("change", (event) => setHistoryDate(event.target.value));
@@ -195,6 +198,17 @@ function bindEvents() {
   byId("matchForm").addEventListener("submit", saveMatch);
   byId("playerForm").addEventListener("submit", addPlayer);
   byId("resetButton").addEventListener("click", resetData);
+}
+
+function setLeaderboardMode(mode) {
+  leaderboardMode = mode === "day" ? "day" : "all";
+  renderLeaderboard();
+}
+
+function setLeaderboardDate(date) {
+  selectedLeaderboardDate = date;
+  leaderboardMode = "day";
+  renderLeaderboard();
 }
 
 function setHistoryMode(mode) {

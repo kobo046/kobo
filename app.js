@@ -4,6 +4,8 @@ let editingMatchId = "";
 let matchSummaries = [];
 let historyMode = "all";
 let selectedHistoryDate = "";
+let leaderboardMode = "all";
+let selectedLeaderboardDate = "";
 
 function renderAll() {
   renderStats();

@@ -30,10 +30,33 @@ function teamLabel(ids) {
   return ids.map(playerName).join(" / ");
 }
 
+function matchDates() {
+  return [...new Set(state.matches.map((match) => match.date).filter(Boolean))].sort().reverse();
+}
+
+function ensureSelectedDate(currentDate, dates) {
+  if (!dates.length) return "";
+  return currentDate && dates.includes(currentDate) ? currentDate : dates[0];
+}
+
+function leaderboardPlayers() {
+  if (leaderboardMode !== "day") return computedPlayers();
+
+  const dates = matchDates();
+  selectedLeaderboardDate = ensureSelectedDate(selectedLeaderboardDate, dates);
+  let players = state.players.map(createStats);
+  state.matches
+    .filter((match) => match.date === selectedLeaderboardDate)
+    .forEach((match) => {
+      players = applyMatch(players, match).players;
+    });
+  return players;
+}
+
 function sortedPlayers() {
   const query = byId("searchInput").value.trim().toLowerCase();
   const sort = byId("sortSelect").value;
-  return computedPlayers()
+  return leaderboardPlayers()
     .filter((player) => player.name.toLowerCase().includes(query))
     .sort((a, b) => {
       if (sort === "winRate") return winRate(b) - winRate(a);
@@ -41,6 +64,42 @@ function sortedPlayers() {
       if (sort === "recent") return new Date(b.recent || 0) - new Date(a.recent || 0);
       return b.rating - a.rating;
     });
+}
+
+function renderLeaderboardControls(rows) {
+  const dates = matchDates();
+  selectedLeaderboardDate = ensureSelectedDate(selectedLeaderboardDate, dates);
+  const dateInput = byId("leaderboardDate");
+  const allButton = byId("leaderboardAllButton");
+  const dayButton = byId("leaderboardDayButton");
+  const playedPlayers = rows.filter((player) => player.wins + player.losses > 0);
+  const topPlayer = rows[0];
+
+  if (dateInput) {
+    dateInput.value = selectedLeaderboardDate;
+    dateInput.disabled = leaderboardMode !== "day" || !dates.length;
+  }
+  if (allButton) allButton.classList.toggle("active", leaderboardMode === "all");
+  if (dayButton) dayButton.classList.toggle("active", leaderboardMode === "day");
+
+  byId("leaderboardSummary").innerHTML = `
+    <article>
+      <span>${leaderboardMode === "day" ? selectedLeaderboardDate || "未有日期" : "總分數"}</span>
+      <p>${leaderboardMode === "day" ? "單日排名" : "全部比賽"}</p>
+    </article>
+    <article>
+      <span>${playedPlayers.length}</span>
+      <p>有出賽選手</p>
+    </article>
+    <article>
+      <span>${topPlayer ? formatScore(topPlayer.rating) : formatScore(initialRating)}</span>
+      <p>最高分</p>
+    </article>
+    <article>
+      <span>${topPlayer ? topPlayer.name : "-"}</span>
+      <p>目前第一</p>
+    </article>
+  `;
 }
 
 function renderStats() {
@@ -55,6 +114,7 @@ function renderStats() {
 
 function renderLeaderboard() {
   const rows = sortedPlayers();
+  renderLeaderboardControls(rows);
   byId("leaderboardBody").innerHTML = rows.length
     ? rows
         .map((player, index) => {

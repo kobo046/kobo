@@ -530,6 +530,57 @@ h2 {
   background: #f8fbf7;
 }
 
+.leaderboard-dashboard {
+  margin-bottom: 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fbf7;
+}
+
+.leaderboard-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.leaderboard-date-field {
+  min-width: 190px;
+}
+
+.leaderboard-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--line);
+}
+
+.leaderboard-summary article {
+  min-height: 78px;
+  padding: 14px;
+  background: white;
+}
+
+.leaderboard-summary span {
+  display: block;
+  color: var(--green-dark);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.leaderboard-summary p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 #history {
   display: flex;
   flex-direction: column;
@@ -992,6 +1043,7 @@ footer {
   .stats-band,
   .player-grid,
   .team-cards,
+  .leaderboard-summary,
   .history-summary,
   .team-input,
   .team-input.flexible-team,
@@ -1007,6 +1059,16 @@ footer {
   .history-controls {
     display: grid;
     grid-template-columns: 1fr 1fr;
+  }
+
+  .leaderboard-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .leaderboard-date-field {
+    grid-column: 1 / -1;
+    min-width: 0;
   }
 
   .history-date-field {
@@ -1163,6 +1225,108 @@ footer {
 
   .leaderboard-table .rank {
     margin-left: auto;
+  }
+
+  .leaderboard-table tbody {
+    display: grid;
+    gap: 10px;
+  }
+
+  .leaderboard-table tr {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "rank player score"
+      "rank record win"
+      "rank points action";
+    gap: 5px 10px;
+    margin-bottom: 0;
+    padding: 10px;
+  }
+
+  .leaderboard-table td {
+    display: block;
+    padding: 0;
+    border-bottom: 0;
+    text-align: left;
+  }
+
+  .leaderboard-table td::before {
+    display: none;
+  }
+
+  .leaderboard-table td:nth-child(1) {
+    grid-area: rank;
+    align-self: center;
+  }
+
+  .leaderboard-table td:nth-child(2) {
+    grid-area: player;
+    min-width: 0;
+  }
+
+  .leaderboard-table td:nth-child(3) {
+    grid-area: score;
+    align-self: start;
+    justify-self: end;
+  }
+
+  .leaderboard-table td:nth-child(4) {
+    grid-area: win;
+    justify-self: end;
+    color: var(--green-dark);
+    font-weight: 800;
+  }
+
+  .leaderboard-table td:nth-child(5) {
+    grid-area: record;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .leaderboard-table td:nth-child(6) {
+    grid-area: points;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .leaderboard-table td:nth-child(7) {
+    display: none;
+  }
+
+  .leaderboard-table td:nth-child(8) {
+    grid-area: action;
+    justify-self: end;
+    align-self: end;
+  }
+
+  .leaderboard-table .rank {
+    width: 38px;
+    height: 38px;
+    margin: 0;
+  }
+
+  .leaderboard-table .team-name {
+    overflow: hidden;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .leaderboard-table .members {
+    text-align: left;
+    font-size: 12px;
+  }
+
+  .leaderboard-table .score-pill {
+    min-width: 64px;
+    padding: 5px 8px;
+  }
+
+  .leaderboard-table .mini-danger {
+    min-height: 28px;
+    padding: 4px 8px;
+    font-size: 12px;
   }
 
   .history-table .match-details {

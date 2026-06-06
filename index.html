@@ -12,8 +12,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=19" />
-    <link rel="stylesheet" href="cartoon-court-v10.css?v=19" />
+    <link rel="stylesheet" href="styles.css?v=21" />
+    <link rel="stylesheet" href="cartoon-court-v10.css?v=21" />
   </head>
   <body>
     <header class="app-header">
@@ -89,6 +89,18 @@
             <h2>動態排行榜</h2>
           </div>
           <p class="hint">只計個人分數，初始 5 分，最高 10 分。</p>
+        </div>
+
+        <div class="leaderboard-dashboard">
+          <div class="leaderboard-controls">
+            <button id="leaderboardAllButton" class="filter-btn active" type="button">總排名</button>
+            <button id="leaderboardDayButton" class="filter-btn" type="button">單日排名</button>
+            <label class="select-field leaderboard-date-field">
+              <span>日期</span>
+              <input id="leaderboardDate" type="date" />
+            </label>
+          </div>
+          <div id="leaderboardSummary" class="leaderboard-summary" aria-live="polite"></div>
         </div>
 
         <div class="toolbar">
@@ -286,12 +298,12 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js?v=19"></script>
-    <script src="cloud-storage.js?v=19"></script>
-    <script src="storage.js?v=19"></script>
-    <script src="scoring.js?v=19"></script>
-    <script src="render.js?v=19"></script>
-    <script src="events.js?v=19"></script>
-    <script src="app.js?v=19"></script>
+    <script src="supabase-config.js?v=21"></script>
+    <script src="cloud-storage.js?v=21"></script>
+    <script src="storage.js?v=21"></script>
+    <script src="scoring.js?v=21"></script>
+    <script src="render.js?v=21"></script>
+    <script src="events.js?v=21"></script>
+    <script src="app.js?v=21"></script>
   </body>
 </html>
