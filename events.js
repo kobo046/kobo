@@ -188,10 +188,24 @@ function bindEvents() {
   if (!byId("matchDate").value) byId("matchDate").value = new Date().toISOString().slice(0, 10);
   byId("searchInput").addEventListener("input", renderLeaderboard);
   byId("sortSelect").addEventListener("change", renderLeaderboard);
+  byId("historyAllButton").addEventListener("click", () => setHistoryMode("all"));
+  byId("historyDayButton").addEventListener("click", () => setHistoryMode("day"));
+  byId("historyDate").addEventListener("change", (event) => setHistoryDate(event.target.value));
   byId("previewButton").addEventListener("click", () => renderPreview());
   byId("matchForm").addEventListener("submit", saveMatch);
   byId("playerForm").addEventListener("submit", addPlayer);
   byId("resetButton").addEventListener("click", resetData);
+}
+
+function setHistoryMode(mode) {
+  historyMode = mode === "day" ? "day" : "all";
+  renderHistory();
+}
+
+function setHistoryDate(date) {
+  selectedHistoryDate = date;
+  historyMode = "day";
+  renderHistory();
 }
 
 async function handleAddPlayerClick(event) {

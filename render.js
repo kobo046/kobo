@@ -149,10 +149,83 @@ function renderPlayerOptions() {
   }
 }
 
+function historyDates() {
+  return [...new Set(state.matches.map((match) => match.date).filter(Boolean))].sort().reverse();
+}
+
+function ensureHistoryDate(dates) {
+  if (!dates.length) {
+    selectedHistoryDate = "";
+    return "";
+  }
+  if (!selectedHistoryDate || !dates.includes(selectedHistoryDate)) {
+    selectedHistoryDate = dates[0];
+  }
+  return selectedHistoryDate;
+}
+
+function summarizeHistory(matches) {
+  const totalPoints = matches.reduce((sum, match) => sum + Number(match.scoreA) + Number(match.scoreB), 0);
+  const biggestMargin = matches.reduce((max, match) => Math.max(max, Math.abs(Number(match.scoreA) - Number(match.scoreB))), 0);
+  const dates = new Set(matches.map((match) => match.date).filter(Boolean));
+  const aWins = matches.filter((match) => Number(match.scoreA) > Number(match.scoreB)).length;
+  const bWins = matches.length - aWins;
+
+  return { totalPoints, biggestMargin, dateCount: dates.size, aWins, bWins };
+}
+
+function renderHistoryControls(dates, visibleMatches) {
+  const dateInput = byId("historyDate");
+  const allButton = byId("historyAllButton");
+  const dayButton = byId("historyDayButton");
+  const summary = summarizeHistory(visibleMatches);
+  const selectedDate = ensureHistoryDate(dates);
+
+  if (dateInput) {
+    dateInput.value = selectedDate;
+    dateInput.disabled = historyMode !== "day" || !dates.length;
+  }
+
+  if (allButton) allButton.classList.toggle("active", historyMode === "all");
+  if (dayButton) dayButton.classList.toggle("active", historyMode === "day");
+
+  const rangeLabel = historyMode === "day" ? selectedDate || "未有日期" : `全部 ${summary.dateCount} 日`;
+  byId("historySummary").innerHTML = `
+    <article>
+      <span>${rangeLabel}</span>
+      <p>${historyMode === "day" ? "單日記錄" : "總記錄"}</p>
+    </article>
+    <article>
+      <span>${visibleMatches.length}</span>
+      <p>比賽場次</p>
+    </article>
+    <article>
+      <span>${summary.totalPoints}</span>
+      <p>總得分</p>
+    </article>
+    <article>
+      <span>${summary.biggestMargin}</span>
+      <p>最大分差</p>
+    </article>
+    <article>
+      <span>${summary.aWins}:${summary.bWins}</span>
+      <p>A 隊勝 : B 隊勝</p>
+    </article>
+  `;
+}
+
 function renderHistory() {
   recompute();
-  byId("historyBody").innerHTML = matchSummaries.length
-    ? [...matchSummaries]
+  const dates = historyDates();
+  const selectedDate = ensureHistoryDate(dates);
+  const visibleMatches = historyMode === "day"
+    ? matchSummaries.filter((match) => match.date === selectedDate)
+    : matchSummaries;
+
+  renderHistoryControls(dates, visibleMatches);
+
+  byId("historyBody").innerHTML = visibleMatches.length
+    ? [...visibleMatches]
         .reverse()
         .map((match) => {
           const changedNames = [...match.teamAIds, ...match.teamBIds]

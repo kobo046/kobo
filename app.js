@@ -2,6 +2,8 @@ let state = normalizeState(clone(seedData));
 let selectedPlayerId = state.players.length ? state.players[0].id : "";
 let editingMatchId = "";
 let matchSummaries = [];
+let historyMode = "all";
+let selectedHistoryDate = "";
 
 function renderAll() {
   renderStats();
