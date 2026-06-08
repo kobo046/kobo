@@ -1354,3 +1354,116 @@ footer {
     height: 230px;
   }
 }
+
+@media (max-width: 640px) {
+  .leaderboard-section .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .leaderboard-table {
+    display: table;
+    min-width: 760px;
+    border-collapse: collapse;
+  }
+
+  .leaderboard-table thead {
+    display: table-header-group;
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+  }
+
+  .leaderboard-table tbody {
+    display: table-row-group;
+  }
+
+  .leaderboard-table tr {
+    display: table-row;
+    margin-bottom: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .leaderboard-table th,
+  .leaderboard-table td {
+    display: table-cell;
+    padding: 12px 10px;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: middle;
+  }
+
+  .leaderboard-table td::before {
+    display: none;
+    content: none;
+  }
+
+  .leaderboard-table td:nth-child(1),
+  .leaderboard-table td:nth-child(2),
+  .leaderboard-table td:nth-child(3),
+  .leaderboard-table td:nth-child(4),
+  .leaderboard-table td:nth-child(5),
+  .leaderboard-table td:nth-child(6),
+  .leaderboard-table td:nth-child(7),
+  .leaderboard-table td:nth-child(8) {
+    display: table-cell;
+    grid-area: auto;
+    color: inherit;
+    font-size: inherit;
+    justify-self: auto;
+    align-self: auto;
+  }
+
+  .leaderboard-table th:nth-child(1),
+  .leaderboard-table td:nth-child(1) {
+    width: 76px;
+    padding-left: 0;
+  }
+
+  .leaderboard-table th:nth-child(2),
+  .leaderboard-table td:nth-child(2) {
+    width: 180px;
+  }
+
+  .leaderboard-table th:nth-child(3),
+  .leaderboard-table td:nth-child(3) {
+    width: 130px;
+  }
+
+  .leaderboard-table th:nth-child(4),
+  .leaderboard-table td:nth-child(4) {
+    width: 96px;
+  }
+
+  .leaderboard-table .rank {
+    width: 44px;
+    height: 44px;
+    margin: 0;
+  }
+
+  .leaderboard-table .team-name,
+  .leaderboard-table .members {
+    max-width: 150px;
+    overflow: hidden;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .leaderboard-table .score-pill {
+    min-width: 82px;
+    padding: 6px 10px;
+  }
+
+  .leaderboard-table .mini-danger {
+    min-height: 32px;
+    padding: 5px 10px;
+    font-size: 13px;
+  }
+}
