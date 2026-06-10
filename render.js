@@ -50,7 +50,7 @@ function leaderboardPlayers() {
     .forEach((match) => {
       players = applyMatch(players, match).players;
     });
-  return players;
+  return players.filter((player) => player.wins + player.losses > 0);
 }
 
 function sortedPlayers() {
