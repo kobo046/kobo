@@ -14,7 +14,7 @@
 - `badminton_players`
 - `badminton_matches`
 
-第一階段是無登入共享版：知道網址的人可以共同查看和修改同一份資料。之後如要限制權限，可以再加 Supabase Auth 和更嚴格的 RLS policy。
+目前版本使用簡易管理員密碼：知道網址的人可以查看資料，輸入管理員密碼後才會看到新增、編輯和刪除功能。這是前端方便鎖，不是高安全資料庫權限。
 
 ## 2. 填入網站設定
 
@@ -52,25 +52,22 @@ window.BADMINTON_SUPABASE_CONFIG = {
 - `anonKey` 是 Supabase 前端公開 key，不是 service role key。
 - 不要把 Supabase `service_role` key 放入網站。
 - 第一階段採用最後寫入為準，同一時間多人改同一場比賽時，最後儲存的一方會覆蓋前一方。
-- 想做更嚴格權限時，下一階段應加入登入、admin/member 角色和操作紀錄。
+- 現時管理員密碼是前端簡易鎖，適合防止普通訪客誤改；想做真正嚴格權限時，下一階段才加入 Supabase Auth、admin/member 角色和操作紀錄。
 
-## 6. 管理員登入 / 只讀模式
+## 6. 管理員密碼 / 只讀模式
 
 現在網站支援兩種權限：
 
 - 一般訪客：不用登入，只可以查看排行榜、選手、比賽歷史和匯出備份。
-- 管理員 / 編輯者：用 Email magic link 登入後，可以新增選手、新增比賽、編輯、刪除、匯入備份、上傳雲端。
+- 管理員：輸入管理員密碼後，可以新增選手、新增比賽、編輯、刪除、匯入備份、上傳雲端。
 
-請在 Supabase 做以下設定：
+使用方法：
 
-1. 到 `Authentication` > `Providers`，確認 `Email` 已啟用。
-2. 到 `Authentication` > `URL Configuration`：
-   - `Site URL` 設為 `https://kobo046.github.io/kobo/`
-   - `Redirect URLs` 加入 `https://kobo046.github.io/kobo/`
-3. 先到網站輸入你的管理員 Email，按「寄出登入連結」，再到 Email 按連結登入一次。
-4. 回到 Supabase `SQL Editor`，打開 `supabase-auth-rls.sql`，把最後的 `your-email@example.com` 改成你的 Email，然後執行。
-5. 重新整理網站。登入後如果顯示「權限：管理員」，就可以修改資料；其他人只會是只讀模式。
+1. 打開網站 `https://kobo046.github.io/kobo/`。
+2. 在「管理員模式」輸入管理員密碼。
+3. 成功後會顯示新增比賽、新增選手、編輯和刪除按鈕。
+4. 同一部手機或電腦會記住管理員模式；按「退出管理員模式」後會回到只讀。
 
-之後要加其他人做可編輯者，先叫對方登入一次，再在 `supabase-auth-rls.sql` 最底部用 `friend@example.com` 範例改成對方 Email 和 `editor` role 執行。
+如果你之前已經執行過 Supabase Auth/RLS 的 SQL，前端密碼雖然會解鎖畫面，但雲端寫入可能仍被資料庫拒絕。這時在 Supabase `SQL Editor` 執行 `supabase-simple-passcode.sql`，回復成簡易密碼版可用的 public write policy。
 
-重要：只改前端不能真正防止別人寫入。一定要執行 `supabase-auth-rls.sql`，把舊的 `public write` policy 換成 admin/editor 才可寫入。
+重要：這個密碼模式是方便使用，不是銀行級安全。真正要防止懂技術的人繞過前端，需要重新使用 Supabase Auth / RLS。

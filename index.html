@@ -12,8 +12,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=24" />
-    <link rel="stylesheet" href="cartoon-court-v10.css?v=24" />
+    <link rel="stylesheet" href="styles.css?v=25" />
+    <link rel="stylesheet" href="cartoon-court-v10.css?v=25" />
   </head>
   <body class="viewer-mode">
     <header class="app-header">
@@ -86,17 +86,17 @@
         <div class="section-heading compact">
           <div>
             <p class="eyebrow">Access</p>
-            <h2>權限登入</h2>
+            <h2>管理員模式</h2>
           </div>
-          <p class="hint">一般人只可查看排行榜；管理員登入後才可新增、編輯或刪除資料。</p>
+          <p class="hint">一般人只可查看排行榜；輸入管理員密碼後才可新增、編輯或刪除資料。</p>
         </div>
         <form class="auth-form" onsubmit="return handleLoginClick(event)">
           <label class="search-field">
-            <span>管理員 Email</span>
-            <input id="adminEmail" type="email" placeholder="輸入管理員 Email" autocomplete="email" />
+            <span>管理員密碼</span>
+            <input id="adminPasscode" type="password" inputmode="numeric" pattern="[0-9]*" placeholder="輸入管理員密碼" autocomplete="current-password" />
           </label>
-          <button id="loginButton" class="primary-action" type="submit">寄出登入連結</button>
-          <button id="logoutButton" class="secondary-action hidden" type="button" onclick="return handleLogoutClick(event)">登出</button>
+          <button id="loginButton" class="primary-action" type="submit">進入管理員模式</button>
+          <button id="logoutButton" class="secondary-action hidden" type="button" onclick="return handleLogoutClick(event)">退出管理員模式</button>
         </form>
         <p id="authStatus" class="auth-status" aria-live="polite">目前是只讀模式。</p>
       </section>
@@ -317,13 +317,13 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js?v=24"></script>
-    <script src="cloud-storage.js?v=24"></script>
-    <script src="auth.js?v=24"></script>
-    <script src="storage.js?v=24"></script>
-    <script src="scoring.js?v=24"></script>
-    <script src="render.js?v=24"></script>
-    <script src="events.js?v=24"></script>
-    <script src="app.js?v=24"></script>
+    <script src="supabase-config.js?v=25"></script>
+    <script src="cloud-storage.js?v=25"></script>
+    <script src="auth.js?v=25"></script>
+    <script src="storage.js?v=25"></script>
+    <script src="scoring.js?v=25"></script>
+    <script src="render.js?v=25"></script>
+    <script src="events.js?v=25"></script>
+    <script src="app.js?v=25"></script>
   </body>
 </html>
