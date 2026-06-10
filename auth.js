@@ -1,5 +1,5 @@
-const adminAccessKey = "badmintonAdminAccess.v1";
-const adminPasscode = "95510265";
+const adminAccessKey = "badmintonAdminAccess.v2";
+const adminPasscode = "95512065";
 let currentRole = "viewer";
 
 function currentAccessToken() {

@@ -35,14 +35,14 @@ npm test
 
 此專案是純靜態網站，`index.html` 內所有 CSS、JS、manifest 都使用相對路徑，例如：
 
-- `styles.css?v=25`
-- `cartoon-court-v10.css?v=25`
-- `storage.js?v=25`
-- `scoring.js?v=25`
-- `render.js?v=25`
-- `events.js?v=25`
-- `auth.js?v=25`
-- `app.js?v=25`
+- `styles.css?v=26`
+- `cartoon-court-v10.css?v=26`
+- `storage.js?v=26`
+- `scoring.js?v=26`
+- `render.js?v=26`
+- `events.js?v=26`
+- `auth.js?v=26`
+- `app.js?v=26`
 - `manifest.webmanifest`
 
 所以部署到 GitHub Pages 的子路徑，例如 `/kobo/`，可以正常運作。
