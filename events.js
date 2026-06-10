@@ -7,6 +7,17 @@ function selectedPlayerIds() {
   ];
 }
 
+function canEditData() {
+  return typeof isEditor === "function" && isEditor();
+}
+
+function guardEditorAction(actionName) {
+  if (canEditData()) return true;
+  if (typeof requireEditorAction === "function") return requireEditorAction(actionName);
+  setStatus(`只有管理員可以${actionName}。`, true);
+  return false;
+}
+
 function validateMatchSelection() {
   if (state.players.length < 4) return "至少需要 4 位選手才可以新增雙打比賽。";
   const ids = selectedPlayerIds();
@@ -69,6 +80,7 @@ function renderPreview() {
 
 async function saveMatch(event) {
   if (event) event.preventDefault();
+  if (!guardEditorAction("儲存比賽")) return;
   const match = renderPreview();
   if (!match) return;
 
@@ -95,6 +107,7 @@ async function saveMatch(event) {
 
 async function addPlayer(event) {
   if (event) event.preventDefault();
+  if (!guardEditorAction("新增選手")) return;
   const nameInput = byId("newPlayerName");
   const name = nameInput.value.trim();
   if (!name) {
@@ -120,6 +133,7 @@ async function addPlayer(event) {
 }
 
 async function deletePlayer(playerId) {
+  if (!guardEditorAction("刪除選手")) return;
   const player = basePlayer(playerId);
   if (!player) return;
   const relatedMatches = state.matches.filter((match) => [...match.teamAIds, ...match.teamBIds].includes(playerId)).length;
@@ -134,6 +148,7 @@ async function deletePlayer(playerId) {
 }
 
 function editMatch(matchId) {
+  if (!guardEditorAction("編輯比賽")) return;
   const match = state.matches.find((item) => item.id === matchId);
   if (!match) return;
   editingMatchId = matchId;
@@ -155,6 +170,7 @@ function editMatch(matchId) {
 }
 
 async function deleteMatch(matchId) {
+  if (!guardEditorAction("刪除比賽")) return;
   const match = state.matches.find((item) => item.id === matchId);
   if (!match) return;
   const confirmed = window.confirm(`確定刪除 ${match.date} 的比賽紀錄 ${teamLabel(match.teamAIds)} ${match.scoreA}:${match.scoreB} ${teamLabel(match.teamBIds)}？`);
@@ -174,6 +190,7 @@ function clearMatchEditingUi() {
 }
 
 async function resetData() {
+  if (!guardEditorAction("重設資料")) return;
   const confirmed = window.confirm("會清除目前瀏覽器已儲存的比賽同選手資料，並回復示範資料。確定要繼續？");
   if (!confirmed) return;
   state = normalizeState(clone(seedData));
@@ -296,6 +313,7 @@ function handleExportClick(event) {
 
 async function handleUploadCloudClick(event) {
   if (event) event.preventDefault();
+  if (!guardEditorAction("上傳雲端資料")) return false;
   try {
     await uploadLocalStateToCloud();
   } catch (error) {
@@ -307,6 +325,7 @@ async function handleUploadCloudClick(event) {
 
 async function handleCloudCheckClick(event) {
   if (event) event.preventDefault();
+  if (!guardEditorAction("測試雲端寫入")) return false;
   try {
     if (!window.cloudSync || !window.cloudSync.testConnection) {
       setStatus("雲端檢查失敗：同步程式未載入。", true);
@@ -322,6 +341,10 @@ async function handleCloudCheckClick(event) {
 }
 
 function handleImportFileChange(event) {
+  if (!guardEditorAction("匯入備份")) {
+    event.target.value = "";
+    return false;
+  }
   const file = event.target.files && event.target.files[0];
   if (file) importBackup(file);
   event.target.value = "";

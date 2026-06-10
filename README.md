@@ -35,13 +35,14 @@ npm test
 
 此專案是純靜態網站，`index.html` 內所有 CSS、JS、manifest 都使用相對路徑，例如：
 
-- `styles.css?v=12`
-- `cartoon-court-v10.css?v=12`
-- `storage.js?v=12`
-- `scoring.js?v=12`
-- `render.js?v=12`
-- `events.js?v=12`
-- `app.js?v=12`
+- `styles.css?v=24`
+- `cartoon-court-v10.css?v=24`
+- `storage.js?v=24`
+- `scoring.js?v=24`
+- `render.js?v=24`
+- `events.js?v=24`
+- `auth.js?v=24`
+- `app.js?v=24`
 - `manifest.webmanifest`
 
 所以部署到 GitHub Pages 的子路徑，例如 `/kobo/`，可以正常運作。
@@ -53,8 +54,11 @@ npm test
 - `supabase-config.js`
 - `cloud-storage.js`
 - `supabase-schema.sql`
+- `supabase-auth-rls.sql`
 
 未填 Supabase 設定前，網站會顯示本機模式。設定好 Supabase 後，同一個 `clubId` 的所有裝置會共用同一份選手、比賽和排行榜資料。
+
+目前版本支援只讀 / 管理員模式：一般訪客可查看資料，只有在 Supabase Auth 登入且列入 `badminton_club_members` 的 admin/editor 才可新增、修改或刪除資料。請按 `SUPABASE_SETUP.md` 執行 `supabase-auth-rls.sql`，否則資料庫仍可能保留舊的 public write policy。
 
 詳細步驟見 `SUPABASE_SETUP.md`。
 

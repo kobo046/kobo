@@ -115,6 +115,11 @@ async function loadState() {
   try {
     const cloudState = await window.cloudSync.loadStateFromCloud();
     if (isEmptyCloudState(cloudState)) {
+      if (typeof isEditor === "function" && !isEditor()) {
+        localStorage.setItem(storageKey, JSON.stringify(localState));
+        setStatus("雲端暫時未有資料；只讀模式不會自動上傳本機資料。");
+        return localState;
+      }
       const backupState = normalizeState(readSavedState(preCloudBackupKey) || {});
       const bootstrapState = hasMeaningfulLocalData(localState) ? localState : backupState;
       if (hasMeaningfulLocalData(bootstrapState)) {

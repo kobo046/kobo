@@ -40,9 +40,10 @@ window.cloudSync = (() => {
 
   function restHeaders(extra = {}) {
     const key = config().anonKey;
+    const token = typeof window.currentAccessToken === "function" ? window.currentAccessToken() : "";
     return {
       apikey: key,
-      Authorization: `Bearer ${key}`,
+      Authorization: `Bearer ${token || key}`,
       "Content-Type": "application/json",
       ...extra
     };
@@ -378,6 +379,7 @@ window.cloudSync = (() => {
     isConfigured,
     clubId,
     transportLabel,
+    getClient,
     loadStateFromCloud,
     saveStateToCloud,
     testConnection,

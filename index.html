@@ -12,10 +12,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=23" />
-    <link rel="stylesheet" href="cartoon-court-v10.css?v=23" />
+    <link rel="stylesheet" href="styles.css?v=24" />
+    <link rel="stylesheet" href="cartoon-court-v10.css?v=24" />
   </head>
-  <body>
+  <body class="viewer-mode">
     <header class="app-header">
       <nav class="topbar" aria-label="主要導覽">
         <a class="brand" href="#leaderboard" aria-label="首頁">
@@ -28,7 +28,7 @@
         <div class="nav-links">
           <a href="#leaderboard">排行榜</a>
           <a href="#players">選手</a>
-          <a href="#match">新增比賽</a>
+          <a class="editor-only" href="#match">新增比賽</a>
           <a href="#history">比賽歷史</a>
           <a href="#analytics">計分規則</a>
         </div>
@@ -42,8 +42,8 @@
             每位選手由 5.00 分開始，最高 10.00 分。比賽會按勝負、比分差距，以及高分選手輸給低分選手的爆冷程度，自動調整個人分數。
           </p>
           <div class="hero-actions">
-            <a class="primary-action" href="#match">記錄新比賽</a>
-            <a class="secondary-action" href="#players">新增選手</a>
+            <a class="primary-action editor-only" href="#match">記錄新比賽</a>
+            <a class="secondary-action editor-only" href="#players">新增選手</a>
           </div>
         </div>
         <div class="court-panel" aria-hidden="true">
@@ -80,6 +80,25 @@
           <span id="avgScore">5.00</span>
           <p>平均分數</p>
         </article>
+      </section>
+
+      <section id="access" class="section workspace auth-section">
+        <div class="section-heading compact">
+          <div>
+            <p class="eyebrow">Access</p>
+            <h2>權限登入</h2>
+          </div>
+          <p class="hint">一般人只可查看排行榜；管理員登入後才可新增、編輯或刪除資料。</p>
+        </div>
+        <form class="auth-form" onsubmit="return handleLoginClick(event)">
+          <label class="search-field">
+            <span>管理員 Email</span>
+            <input id="adminEmail" type="email" placeholder="輸入管理員 Email" autocomplete="email" />
+          </label>
+          <button id="loginButton" class="primary-action" type="submit">寄出登入連結</button>
+          <button id="logoutButton" class="secondary-action hidden" type="button" onclick="return handleLogoutClick(event)">登出</button>
+        </form>
+        <p id="authStatus" class="auth-status" aria-live="polite">目前是只讀模式。</p>
       </section>
 
       <section id="leaderboard" class="section workspace leaderboard-section">
@@ -146,7 +165,7 @@
               <h2>選手管理</h2>
             </div>
           </div>
-          <form id="playerForm" class="inline-form">
+          <form id="playerForm" class="inline-form editor-only">
             <input id="newPlayerName" type="text" placeholder="新增選手姓名" maxlength="30" />
             <select id="newPlayerGender">
               <option value="男">男</option>
@@ -159,7 +178,7 @@
         <aside class="detail-panel" id="playerDetail" aria-live="polite"></aside>
       </section>
 
-      <section id="match" class="section match-section scorekeeper-section">
+      <section id="match" class="section match-section scorekeeper-section editor-only">
         <div class="section-heading">
           <div>
             <p class="eyebrow">Match entry</p>
@@ -268,7 +287,7 @@
             <p class="eyebrow">Scoring model</p>
             <h2>計分規則</h2>
           </div>
-          <button class="danger-action" id="resetButton" type="button" onclick="return handleResetClick(event)">重設示範資料</button>
+          <button class="danger-action editor-only" id="resetButton" type="button" onclick="return handleResetClick(event)">重設示範資料</button>
         </div>
         <div id="ruleCards" class="team-cards"></div>
       </section>
@@ -282,10 +301,10 @@
           <p class="hint">未接資料庫前，建議定期匯出備份。</p>
         </div>
         <div class="backup-actions">
-          <button class="secondary-action" type="button" onclick="return handleCloudCheckClick(event)">檢查雲端連線</button>
-          <button class="primary-action" type="button" onclick="return handleUploadCloudClick(event)">上傳本機資料到雲端</button>
+          <button class="secondary-action editor-only" type="button" onclick="return handleCloudCheckClick(event)">檢查雲端連線</button>
+          <button class="primary-action editor-only" type="button" onclick="return handleUploadCloudClick(event)">上傳本機資料到雲端</button>
           <button class="primary-action" type="button" onclick="return handleExportClick(event)">匯出備份</button>
-          <label class="secondary-action import-button">
+          <label class="secondary-action import-button editor-only">
             匯入備份
             <input id="importFile" type="file" accept="application/json,.json" onchange="return handleImportFileChange(event)" />
           </label>
@@ -298,12 +317,13 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js?v=23"></script>
-    <script src="cloud-storage.js?v=23"></script>
-    <script src="storage.js?v=23"></script>
-    <script src="scoring.js?v=23"></script>
-    <script src="render.js?v=23"></script>
-    <script src="events.js?v=23"></script>
-    <script src="app.js?v=23"></script>
+    <script src="supabase-config.js?v=24"></script>
+    <script src="cloud-storage.js?v=24"></script>
+    <script src="auth.js?v=24"></script>
+    <script src="storage.js?v=24"></script>
+    <script src="scoring.js?v=24"></script>
+    <script src="render.js?v=24"></script>
+    <script src="events.js?v=24"></script>
+    <script src="app.js?v=24"></script>
   </body>
 </html>

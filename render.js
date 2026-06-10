@@ -30,6 +30,10 @@ function teamLabel(ids) {
   return ids.map(playerName).join(" / ");
 }
 
+function canRenderEditorActions() {
+  return typeof isEditor === "function" && isEditor();
+}
+
 function matchDates() {
   return [...new Set(state.matches.map((match) => match.date).filter(Boolean))].sort().reverse();
 }
@@ -114,6 +118,7 @@ function renderStats() {
 
 function renderLeaderboard() {
   const rows = sortedPlayers();
+  const canEdit = canRenderEditorActions();
   renderLeaderboardControls(rows);
   byId("leaderboardBody").innerHTML = rows.length
     ? rows
@@ -132,7 +137,7 @@ function renderLeaderboard() {
               <td>${player.wins} 勝 ${player.losses} 敗 <span class="meta">/ ${played} 場</span></td>
               <td>${player.pointsFor}:${player.pointsAgainst} <span class="meta">(${pointDiff >= 0 ? "+" : ""}${pointDiff})</span></td>
               <td>${player.recent}</td>
-              <td><button class="mini-danger" type="button" onclick="return handleDeletePlayerClick(event, '${player.id}')">刪除</button></td>
+              <td>${canEdit ? `<button class="mini-danger" type="button" onclick="return handleDeletePlayerClick(event, '${player.id}')">刪除</button>` : ""}</td>
             </tr>
           `;
         })
@@ -142,6 +147,7 @@ function renderLeaderboard() {
 
 function renderPlayers() {
   const players = computedPlayers();
+  const canEdit = canRenderEditorActions();
   byId("playerList").innerHTML = players
     .map(
       (player) => `
@@ -150,9 +156,9 @@ function renderPlayers() {
         <strong>${player.name}</strong>
         <span class="meta">${player.gender} · ${formatScore(player.rating)} 分 · ${player.wins + player.losses} 場</span>
         <span class="meta">得失分：${player.pointsFor}:${player.pointsAgainst}</span>
-        <span class="card-actions">
+        ${canEdit ? `<span class="card-actions">
           <span class="mini-danger" onclick="return handleDeletePlayerClick(event, '${player.id}')">刪除</span>
-        </span>
+        </span>` : ""}
       </button>
     `
     )
@@ -276,6 +282,7 @@ function renderHistoryControls(dates, visibleMatches) {
 
 function renderHistory() {
   recompute();
+  const canEdit = canRenderEditorActions();
   const dates = historyDates();
   const selectedDate = ensureHistoryDate(dates);
   const visibleMatches = historyMode === "day"
@@ -317,8 +324,10 @@ function renderHistory() {
                 </details>
               </td>
               <td class="action-cell">
+                ${canEdit ? `
                 <button class="mini-action" type="button" onclick="return handleEditMatchClick(event, '${match.id}')">編輯</button>
                 <button class="mini-danger" type="button" onclick="return handleDeleteMatchClick(event, '${match.id}')">刪除</button>
+                ` : ""}
               </td>
             </tr>
           `;

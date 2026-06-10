@@ -1,61 +1,6 @@
-create table if not exists badminton_clubs (
-  id text primary key,
-  name text not null,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
-create table if not exists badminton_players (
-  club_id text not null references badminton_clubs(id) on delete cascade,
-  id text not null,
-  name text not null,
-  gender text not null default '男',
-  is_active boolean not null default true,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  primary key (club_id, id)
-);
-
-create table if not exists badminton_matches (
-  club_id text not null references badminton_clubs(id) on delete cascade,
-  id text not null,
-  match_date date not null,
-  location text not null default '',
-  note text not null default '',
-  team_a_player_1_id text not null,
-  team_a_player_2_id text not null,
-  team_b_player_1_id text not null,
-  team_b_player_2_id text not null,
-  score_a integer not null,
-  score_b integer not null,
-  deleted_at timestamptz,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  primary key (club_id, id),
-  foreign key (club_id, team_a_player_1_id) references badminton_players(club_id, id),
-  foreign key (club_id, team_a_player_2_id) references badminton_players(club_id, id),
-  foreign key (club_id, team_b_player_1_id) references badminton_players(club_id, id),
-  foreign key (club_id, team_b_player_2_id) references badminton_players(club_id, id),
-  constraint badminton_matches_different_score check (score_a <> score_b),
-  constraint badminton_matches_four_players check (
-    team_a_player_1_id <> team_a_player_2_id and
-    team_a_player_1_id <> team_b_player_1_id and
-    team_a_player_1_id <> team_b_player_2_id and
-    team_a_player_2_id <> team_b_player_1_id and
-    team_a_player_2_id <> team_b_player_2_id and
-    team_b_player_1_id <> team_b_player_2_id
-  )
-);
-
-create index if not exists badminton_players_club_active_idx
-  on badminton_players (club_id, is_active);
-
-create index if not exists badminton_matches_club_active_idx
-  on badminton_matches (club_id, deleted_at, match_date);
-
-alter table badminton_clubs enable row level security;
-alter table badminton_players enable row level security;
-alter table badminton_matches enable row level security;
+-- Supabase Auth + RLS upgrade for the badminton rating app.
+-- Public visitors can read leaderboard data.
+-- Only users listed in badminton_club_members as admin/editor can write data.
 
 insert into badminton_clubs (id, name)
 values ('default', 'Badminton Club')
@@ -75,6 +20,9 @@ create index if not exists badminton_club_members_user_idx
   on badminton_club_members (user_id);
 
 alter table badminton_club_members enable row level security;
+alter table badminton_clubs enable row level security;
+alter table badminton_players enable row level security;
+alter table badminton_matches enable row level security;
 
 create or replace function public.badminton_member_role(p_club_id text)
 returns text
@@ -175,8 +123,9 @@ create policy "members admin write"
   using (public.can_admin_badminton(club_id))
   with check (public.can_admin_badminton(club_id));
 
--- Bootstrap the first admin after that person has logged in once.
--- Replace the email below, then run this insert in Supabase SQL Editor:
+-- Step 1: deploy the website changes and open the site.
+-- Step 2: send yourself a login link and click it once.
+-- Step 3: replace the email below with your admin email and run this block.
 --
 -- insert into badminton_club_members (club_id, user_id, role)
 -- select 'default', id, 'admin'
@@ -184,4 +133,14 @@ create policy "members admin write"
 -- where email = 'your-email@example.com'
 -- on conflict (club_id, user_id) do update
 -- set role = 'admin',
+--     updated_at = now();
+--
+-- Add another editor later:
+--
+-- insert into badminton_club_members (club_id, user_id, role)
+-- select 'default', id, 'editor'
+-- from auth.users
+-- where email = 'friend@example.com'
+-- on conflict (club_id, user_id) do update
+-- set role = 'editor',
 --     updated_at = now();

@@ -226,6 +226,37 @@ h1 {
   display: none !important;
 }
 
+body.viewer-mode .editor-only,
+body.viewer-mode .leaderboard-table th:nth-child(8),
+body.viewer-mode .leaderboard-table td:nth-child(8),
+body.viewer-mode .history-table th:nth-child(8),
+body.viewer-mode .history-table td:nth-child(8) {
+  display: none !important;
+}
+
+.auth-section {
+  margin-top: 24px;
+  padding-top: 28px;
+  padding-bottom: 28px;
+}
+
+.auth-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.auth-status {
+  margin: 14px 0 0;
+  color: var(--green-dark);
+  font-weight: 800;
+}
+
+.auth-status.error {
+  color: var(--rose);
+}
+
 .court-panel {
   padding: 16px;
   border: 3px solid rgba(255, 255, 255, 0.82);
@@ -1048,7 +1079,8 @@ footer {
   .team-input,
   .team-input.flexible-team,
   .match-meta,
-  .inline-form {
+  .inline-form,
+  .auth-form {
     grid-template-columns: 1fr;
   }
 
