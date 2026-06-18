@@ -1,0 +1,312 @@
+:root {
+  --ink: #101916;
+  --muted: #5f6d65;
+  --paper: #f4f7ef;
+  --panel: #fffef9;
+  --line: #d7e1d7;
+  --green: #17704d;
+  --green-dark: #0b4f37;
+  --mint: #d7efe2;
+  --amber: #f4b23e;
+  --blue: #386f83;
+  --rose: #c94c63;
+  --shadow: 0 22px 60px rgba(16, 25, 22, 0.12);
+}
+
+body {
+  background:
+    radial-gradient(circle at 18% 8%, rgba(244, 178, 62, 0.18), transparent 28%),
+    radial-gradient(circle at 82% 4%, rgba(56, 111, 131, 0.14), transparent 30%),
+    linear-gradient(180deg, #fbfcf7 0%, var(--paper) 48%, #eef6ee 100%);
+}
+
+.app-header {
+  position: relative;
+  min-height: 88vh;
+  overflow: hidden;
+  color: var(--ink);
+  background:
+    linear-gradient(115deg, rgba(246, 249, 239, 0.96) 0 52%, rgba(216, 232, 221, 0.86) 52% 100%),
+    linear-gradient(180deg, #fffef8, #edf5ec);
+}
+
+.app-header::before {
+  position: absolute;
+  inset: 98px -12% auto auto;
+  width: 56%;
+  height: 72%;
+  min-height: 460px;
+  border-radius: 0 0 0 72px;
+  background:
+    linear-gradient(135deg, rgba(11, 79, 55, 0.92), rgba(56, 111, 131, 0.72)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.14) 0 2px, transparent 2px 34px);
+  content: "";
+}
+
+.topbar {
+  position: relative;
+  z-index: 2;
+  max-width: 1240px;
+  padding: 18px 28px;
+  color: var(--ink);
+}
+
+.brand {
+  padding: 8px 10px 8px 0;
+}
+
+.brand-mark {
+  border-color: var(--green-dark);
+  background: var(--green-dark);
+  color: #fffef8;
+  box-shadow: 0 8px 0 rgba(244, 178, 62, 0.55);
+}
+
+.brand small {
+  color: var(--muted);
+}
+
+.nav-links {
+  align-items: center;
+  gap: 4px;
+  padding: 7px;
+  border: 1px solid rgba(215, 225, 215, 0.9);
+  border-radius: 999px;
+  background: rgba(255, 254, 249, 0.8);
+  box-shadow: 0 10px 32px rgba(16, 25, 22, 0.08);
+}
+
+.nav-links a {
+  border-radius: 999px;
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.nav-links a:hover {
+  background: var(--mint);
+}
+
+.hero {
+  position: relative;
+  z-index: 1;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 460px);
+  max-width: 1240px;
+  padding-top: 92px;
+  padding-bottom: 170px;
+}
+
+.hero-copy {
+  max-width: 760px;
+}
+
+.hero-copy .eyebrow,
+.section-heading .eyebrow {
+  color: var(--amber);
+}
+
+h1 {
+  max-width: 760px;
+  color: var(--ink);
+  font-size: clamp(48px, 7.4vw, 92px);
+  font-weight: 800;
+  line-height: 0.98;
+}
+
+.hero-copy p:not(.eyebrow) {
+  max-width: 690px;
+  color: #2f3c37;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.hero-actions .primary-action,
+.auth-form .primary-action,
+.form-actions .primary-action {
+  background: var(--amber);
+  color: #1c1608;
+  box-shadow: 0 12px 22px rgba(244, 178, 62, 0.26);
+}
+
+.hero-actions .secondary-action,
+.match-section .secondary-action,
+.auth-form .secondary-action {
+  background: #fffef9;
+  color: var(--green-dark);
+  border-color: var(--line);
+}
+
+.court-panel {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 460px);
+  padding: 22px;
+  border: 2px solid rgba(255, 254, 249, 0.9);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 254, 249, 0.9), rgba(244, 247, 239, 0.84)),
+    rgba(255, 255, 255, 0.5);
+  box-shadow: 0 26px 0 rgba(16, 25, 22, 0.18), 0 30px 68px rgba(16, 25, 22, 0.22);
+  transform: rotate(-1.2deg);
+}
+
+.court-panel::after {
+  position: absolute;
+  right: -18px;
+  bottom: -18px;
+  width: 92px;
+  height: 92px;
+  border: 14px solid rgba(244, 178, 62, 0.72);
+  border-radius: 50%;
+  content: "";
+}
+
+.court {
+  width: 100%;
+  height: 320px;
+  border: 7px solid #fff1b9;
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, transparent 0 26%, rgba(255, 255, 255, 0.16) 26% 35%, transparent 35%),
+    linear-gradient(180deg, #2bbb74, #0f8f61);
+  box-shadow: inset 0 -18px 0 rgba(7, 77, 53, 0.16);
+}
+
+.stats-band {
+  max-width: 1120px;
+  margin-top: -82px;
+  overflow: hidden;
+  border: 1px solid rgba(215, 225, 215, 0.9);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.stats-band article {
+  min-height: 108px;
+  border-right: 1px solid var(--line);
+  background: linear-gradient(180deg, #fffef9, #fbfcf6);
+}
+
+.stats-band article:last-child {
+  border-right: 0;
+}
+
+.section {
+  border-radius: 10px;
+}
+
+.workspace,
+.split-layout,
+.match-section,
+.analytics {
+  border: 1px solid var(--line);
+  background: rgba(255, 254, 249, 0.94);
+  box-shadow: 0 16px 44px rgba(16, 25, 22, 0.08);
+}
+
+.section-heading h2 {
+  color: var(--ink);
+  font-size: clamp(34px, 4vw, 54px);
+  line-height: 1.04;
+}
+
+.leaderboard-dashboard,
+.history-dashboard,
+.quick-actions {
+  border-color: #cfded0;
+  background: #f8fbf2;
+}
+
+.leaderboard-summary article,
+.history-summary article,
+.day-card,
+.activity-item,
+.player-card,
+.detail-panel,
+.team-card {
+  border-radius: 8px;
+  background: #fffef9;
+}
+
+.leaderboard-table th {
+  background: #f3f7ed;
+  color: var(--green-dark);
+}
+
+.leaderboard-table tbody tr:hover {
+  background: #fbf6e8;
+}
+
+.score-pill,
+.leaderboard-table .rank,
+.day-metrics span {
+  background: #e9f6ef;
+}
+
+@media (max-width: 900px) {
+  .app-header::before {
+    inset: auto -18% 0 auto;
+    width: 70%;
+    min-height: 320px;
+    opacity: 0.28;
+  }
+
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding-top: 58px;
+    padding-bottom: 128px;
+  }
+
+  .court-panel {
+    justify-self: center;
+    width: min(100%, 520px);
+    max-width: 520px;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-header {
+    min-height: auto;
+  }
+
+  .topbar {
+    padding: 14px 18px;
+  }
+
+  .nav-links {
+    width: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    border-radius: 14px;
+  }
+
+  .nav-links a {
+    flex: 0 0 auto;
+  }
+
+  .hero {
+    padding: 40px 18px 102px;
+  }
+
+  h1 {
+    font-size: clamp(42px, 15vw, 64px);
+  }
+
+  .hero-copy p:not(.eyebrow) {
+    font-size: 16px;
+  }
+
+  .court-panel {
+    transform: none;
+  }
+
+  .court {
+    height: 220px;
+  }
+
+  .stats-band {
+    margin-top: -58px;
+  }
+}
