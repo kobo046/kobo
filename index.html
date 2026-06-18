@@ -12,8 +12,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=26" />
-    <link rel="stylesheet" href="cartoon-court-v10.css?v=26" />
+    <link rel="stylesheet" href="styles.css?v=27" />
+    <link rel="stylesheet" href="cartoon-court-v10.css?v=27" />
   </head>
   <body class="viewer-mode">
     <header class="app-header">
@@ -27,6 +27,7 @@
         </a>
         <div class="nav-links">
           <a href="#leaderboard">排行榜</a>
+          <a href="#days">比賽日</a>
           <a href="#players">選手</a>
           <a class="editor-only" href="#match">新增比賽</a>
           <a href="#history">比賽歷史</a>
@@ -157,6 +158,17 @@
         </div>
       </section>
 
+      <section id="days" class="section workspace">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Match days</p>
+            <h2>比賽日總覽</h2>
+          </div>
+          <p class="hint">快速查看每一日有幾多場比賽、幾多人出賽，以及當日最高分選手。</p>
+        </div>
+        <div id="dayOverview" class="day-grid"></div>
+      </section>
+
       <section id="players" class="section split-layout">
         <div>
           <div class="section-heading compact">
@@ -233,6 +245,11 @@
               <input id="matchNote" type="text" placeholder="例如：友誼賽／排名賽／練習賽" maxlength="80" />
             </label>
           </div>
+          <div class="quick-actions editor-only">
+            <button class="secondary-action" type="button" onclick="return handleUseLastMatchClick(event)">套用上一場選手</button>
+            <button class="secondary-action" type="button" onclick="return handleSwapTeamsClick(event)">交換 A / B 隊</button>
+            <button class="secondary-action" type="button" onclick="return handleResetScoresClick(event)">重設分數 21:17</button>
+          </div>
           <div class="form-actions">
             <button class="secondary-action" id="previewButton" type="button" onclick="return handlePreviewClick(event)">試算變動</button>
             <button class="secondary-action hidden" id="cancelEditButton" type="button" onclick="return handleCancelEditClick(event)">取消編輯</button>
@@ -292,6 +309,17 @@
         <div id="ruleCards" class="team-cards"></div>
       </section>
 
+      <section id="activity" class="section workspace editor-only">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Activity</p>
+            <h2>操作紀錄</h2>
+          </div>
+          <button class="secondary-action" type="button" onclick="return handleClearActivityLogClick(event)">清除紀錄</button>
+        </div>
+        <div id="activityLog" class="activity-list"></div>
+      </section>
+
       <section id="backup" class="section workspace">
         <div class="section-heading">
           <div>
@@ -317,13 +345,13 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js?v=26"></script>
-    <script src="cloud-storage.js?v=26"></script>
-    <script src="auth.js?v=26"></script>
-    <script src="storage.js?v=26"></script>
-    <script src="scoring.js?v=26"></script>
-    <script src="render.js?v=26"></script>
-    <script src="events.js?v=26"></script>
-    <script src="app.js?v=26"></script>
+    <script src="supabase-config.js?v=27"></script>
+    <script src="cloud-storage.js?v=27"></script>
+    <script src="auth.js?v=27"></script>
+    <script src="storage.js?v=27"></script>
+    <script src="scoring.js?v=27"></script>
+    <script src="render.js?v=27"></script>
+    <script src="events.js?v=27"></script>
+    <script src="app.js?v=27"></script>
   </body>
 </html>

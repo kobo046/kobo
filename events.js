@@ -39,6 +39,23 @@ function readMatchForm() {
   };
 }
 
+function setMatchFormFromMatch(match, options = {}) {
+  if (!match) return;
+  byId("teamAPlayer1").value = match.teamAIds[0];
+  byId("teamAPlayer2").value = match.teamAIds[1];
+  byId("teamBPlayer1").value = match.teamBIds[0];
+  byId("teamBPlayer2").value = match.teamBIds[1];
+  if (options.includeScore) {
+    byId("scoreA").value = match.scoreA;
+    byId("scoreB").value = match.scoreB;
+  }
+  if (options.includeMeta) {
+    byId("matchDate").value = match.date || new Date().toISOString().slice(0, 10);
+    byId("matchLocation").value = match.location || "";
+    byId("matchNote").value = match.note || "";
+  }
+}
+
 function renderPreview() {
   const preview = byId("ratingPreview");
   const error = validateMatchSelection();
@@ -83,6 +100,8 @@ async function saveMatch(event) {
   if (!guardEditorAction("儲存比賽")) return;
   const match = renderPreview();
   if (!match) return;
+  const wasEditing = Boolean(editingMatchId);
+  const logDetail = `${match.date} ${teamLabel(match.teamAIds)} ${match.scoreA}:${match.scoreB} ${teamLabel(match.teamBIds)}`;
 
   if (editingMatchId) {
     state.matches = state.matches.map((item) => (item.id === editingMatchId ? { ...match, id: editingMatchId } : item));
@@ -94,6 +113,7 @@ async function saveMatch(event) {
 
   editingMatchId = "";
   const syncResult = await saveState();
+  if (typeof recordActivity === "function") recordActivity(wasEditing ? "編輯比賽" : "新增比賽", logDetail);
   clearMatchEditingUi();
   renderAll();
   byId("ratingPreview").className = "preview-box visible";
@@ -128,6 +148,7 @@ async function addPlayer(event) {
   selectedPlayerId = player.id;
   nameInput.value = "";
   await saveState();
+  if (typeof recordActivity === "function") recordActivity("新增選手", player.name);
   renderAll();
   setStatus(`已新增選手：${player.name}，初始分數 ${formatScore(initialRating)}。`);
 }
@@ -143,6 +164,7 @@ async function deletePlayer(playerId) {
   state.matches = state.matches.filter((match) => ![...match.teamAIds, ...match.teamBIds].includes(playerId));
   if (selectedPlayerId === playerId) selectedPlayerId = state.players.length ? state.players[0].id : "";
   await saveState();
+  if (typeof recordActivity === "function") recordActivity("刪除選手", `${player.name}，連同 ${relatedMatches} 場比賽`);
   renderAll();
   setStatus(`已刪除選手：${player.name}`);
 }
@@ -178,6 +200,7 @@ async function deleteMatch(matchId) {
   state.matches = state.matches.filter((item) => item.id !== matchId);
   if (editingMatchId === matchId) clearMatchEditingUi();
   await saveState();
+  if (typeof recordActivity === "function") recordActivity("刪除比賽", `${match.date} ${teamLabel(match.teamAIds)} ${match.scoreA}:${match.scoreB} ${teamLabel(match.teamBIds)}`);
   renderAll();
   setStatus("比賽已刪除，排行榜已重新計算。");
 }
@@ -197,6 +220,7 @@ async function resetData() {
   selectedPlayerId = state.players[0].id;
   clearMatchEditingUi();
   await saveState();
+  if (typeof recordActivity === "function") recordActivity("重設資料", "回復示範資料");
   renderAll();
   setStatus("已重設示範資料。");
 }
@@ -237,6 +261,57 @@ function setHistoryDate(date) {
   selectedHistoryDate = date;
   historyMode = "day";
   renderHistory();
+}
+
+function openMatchDay(date) {
+  selectedLeaderboardDate = date;
+  selectedHistoryDate = date;
+  leaderboardMode = "day";
+  historyMode = "day";
+  renderLeaderboard();
+  renderHistory();
+  location.hash = "#leaderboard";
+  setStatus(`已切換到 ${date} 的單日排名和比賽紀錄。`);
+}
+
+function useLastMatchPlayers() {
+  if (!guardEditorAction("套用上一場選手")) return;
+  const lastMatch = state.matches[state.matches.length - 1];
+  if (!lastMatch) {
+    setStatus("未有上一場比賽可以套用。", true);
+    return;
+  }
+  setMatchFormFromMatch(lastMatch, { includeScore: false, includeMeta: false });
+  byId("scoreA").value = 21;
+  byId("scoreB").value = 17;
+  renderPreview();
+  setStatus("已套用上一場的 4 位選手。");
+}
+
+function swapTeams() {
+  if (!guardEditorAction("交換 A / B 隊")) return;
+  const a1 = byId("teamAPlayer1").value;
+  const a2 = byId("teamAPlayer2").value;
+  const b1 = byId("teamBPlayer1").value;
+  const b2 = byId("teamBPlayer2").value;
+  const scoreA = byId("scoreA").value;
+  const scoreB = byId("scoreB").value;
+  byId("teamAPlayer1").value = b1;
+  byId("teamAPlayer2").value = b2;
+  byId("teamBPlayer1").value = a1;
+  byId("teamBPlayer2").value = a2;
+  byId("scoreA").value = scoreB;
+  byId("scoreB").value = scoreA;
+  renderPreview();
+  setStatus("已交換 A / B 隊。");
+}
+
+function resetScores() {
+  if (!guardEditorAction("重設分數")) return;
+  byId("scoreA").value = 21;
+  byId("scoreB").value = 17;
+  renderPreview();
+  setStatus("已重設分數為 21:17。");
 }
 
 async function handleAddPlayerClick(event) {
@@ -351,6 +426,38 @@ function handleImportFileChange(event) {
   return false;
 }
 
+function handleOpenDayClick(event, date) {
+  if (event) event.preventDefault();
+  openMatchDay(date);
+  return false;
+}
+
+function handleUseLastMatchClick(event) {
+  if (event) event.preventDefault();
+  useLastMatchPlayers();
+  return false;
+}
+
+function handleSwapTeamsClick(event) {
+  if (event) event.preventDefault();
+  swapTeams();
+  return false;
+}
+
+function handleResetScoresClick(event) {
+  if (event) event.preventDefault();
+  resetScores();
+  return false;
+}
+
+function handleClearActivityLogClick(event) {
+  if (event) event.preventDefault();
+  if (!guardEditorAction("清除操作紀錄")) return false;
+  clearActivityLog();
+  setStatus("操作紀錄已清除。");
+  return false;
+}
+
 window.handleAddPlayerClick = handleAddPlayerClick;
 window.handlePreviewClick = handlePreviewClick;
 window.handleSaveMatchClick = handleSaveMatchClick;
@@ -363,6 +470,11 @@ window.handleExportClick = handleExportClick;
 window.handleUploadCloudClick = handleUploadCloudClick;
 window.handleCloudCheckClick = handleCloudCheckClick;
 window.handleImportFileChange = handleImportFileChange;
+window.handleOpenDayClick = handleOpenDayClick;
+window.handleUseLastMatchClick = handleUseLastMatchClick;
+window.handleSwapTeamsClick = handleSwapTeamsClick;
+window.handleResetScoresClick = handleResetScoresClick;
+window.handleClearActivityLogClick = handleClearActivityLogClick;
 window.addEventListener("error", (event) => {
   setStatus(`程式錯誤：${event.message}`, true);
 });

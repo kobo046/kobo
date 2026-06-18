@@ -35,14 +35,14 @@ npm test
 
 此專案是純靜態網站，`index.html` 內所有 CSS、JS、manifest 都使用相對路徑，例如：
 
-- `styles.css?v=26`
-- `cartoon-court-v10.css?v=26`
-- `storage.js?v=26`
-- `scoring.js?v=26`
-- `render.js?v=26`
-- `events.js?v=26`
-- `auth.js?v=26`
-- `app.js?v=26`
+- `styles.css?v=27`
+- `cartoon-court-v10.css?v=27`
+- `storage.js?v=27`
+- `scoring.js?v=27`
+- `render.js?v=27`
+- `events.js?v=27`
+- `auth.js?v=27`
+- `app.js?v=27`
 - `manifest.webmanifest`
 
 所以部署到 GitHub Pages 的子路徑，例如 `/kobo/`，可以正常運作。
@@ -59,6 +59,8 @@ npm test
 未填 Supabase 設定前，網站會顯示本機模式。設定好 Supabase 後，同一個 `clubId` 的所有裝置會共用同一份選手、比賽和排行榜資料。
 
 目前版本支援簡易只讀 / 管理員模式：一般訪客可查看資料，輸入管理員密碼後才會顯示新增、修改和刪除功能。這是前端方便鎖，不是高安全資料庫權限；如要真正防止技術使用者寫入，仍需要 Supabase Auth / RLS。
+
+近期改善包括比賽日總覽、管理員模式收合、快速套用上一場選手、交換 A/B 隊、重設分數和本機操作紀錄。
 
 詳細步驟見 `SUPABASE_SETUP.md`。
 

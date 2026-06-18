@@ -1,5 +1,7 @@
 const storageKey = "badmintonPlayerRating.v2";
 const preCloudBackupKey = `${storageKey}.preCloudBackup`;
+const activityLogKey = `${storageKey}.activityLog`;
+const maxActivityLogs = 40;
 
 const seedData = {
   players: [
@@ -77,6 +79,36 @@ function readSavedState(key = storageKey) {
   } catch (error) {
     return null;
   }
+}
+
+function readActivityLog() {
+  try {
+    const logs = JSON.parse(localStorage.getItem(activityLogKey));
+    return Array.isArray(logs) ? logs : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function writeActivityLog(logs) {
+  localStorage.setItem(activityLogKey, JSON.stringify(logs.slice(0, maxActivityLogs)));
+}
+
+function recordActivity(action, detail = "") {
+  const logs = readActivityLog();
+  logs.unshift({
+    id: `log-${Date.now()}`,
+    at: new Date().toISOString(),
+    action,
+    detail
+  });
+  writeActivityLog(logs);
+  if (typeof renderActivityLog === "function") renderActivityLog();
+}
+
+function clearActivityLog() {
+  localStorage.removeItem(activityLogKey);
+  if (typeof renderActivityLog === "function") renderActivityLog();
 }
 
 function hasMeaningfulLocalData(value) {
@@ -243,7 +275,8 @@ function exportBackup() {
     version: 2,
     exportedAt: new Date().toISOString(),
     players: state.players,
-    matches: state.matches
+    matches: state.matches,
+    activityLog: readActivityLog()
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -266,6 +299,8 @@ function importBackup(file) {
       selectedPlayerId = state.players.length ? state.players[0].id : "";
       clearMatchEditingUi();
       await saveState();
+      if (Array.isArray(imported.activityLog)) writeActivityLog(imported.activityLog);
+      recordActivity("匯入備份", `${state.players.length} 位選手，${state.matches.length} 場比賽`);
       renderAll();
       setStatus(window.cloudSync && window.cloudSync.isConfigured() ? "備份已匯入雲端，排行榜已重新計算。" : "備份已匯入，排行榜已重新計算。");
     } catch (error) {

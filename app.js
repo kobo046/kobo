@@ -10,10 +10,12 @@ let selectedLeaderboardDate = "";
 function renderAll() {
   renderStats();
   renderLeaderboard();
+  renderDayOverview();
   renderPlayers();
   renderPlayerDetail();
   renderPlayerOptions();
   renderHistory();
+  renderActivityLog();
   renderRuleCards();
 }
 

@@ -43,18 +43,23 @@ function ensureSelectedDate(currentDate, dates) {
   return currentDate && dates.includes(currentDate) ? currentDate : dates[0];
 }
 
+function playersForDate(date) {
+  if (!date) return [];
+  let players = state.players.map(createStats);
+  state.matches
+    .filter((match) => match.date === date)
+    .forEach((match) => {
+      players = applyMatch(players, match).players;
+    });
+  return players.filter((player) => player.wins + player.losses > 0);
+}
+
 function leaderboardPlayers() {
   if (leaderboardMode !== "day") return computedPlayers();
 
   const dates = matchDates();
   selectedLeaderboardDate = ensureSelectedDate(selectedLeaderboardDate, dates);
-  let players = state.players.map(createStats);
-  state.matches
-    .filter((match) => match.date === selectedLeaderboardDate)
-    .forEach((match) => {
-      players = applyMatch(players, match).players;
-    });
-  return players.filter((player) => player.wins + player.losses > 0);
+  return playersForDate(selectedLeaderboardDate);
 }
 
 function sortedPlayers() {
@@ -114,6 +119,39 @@ function renderStats() {
   byId("totalMatches").textContent = state.matches.length;
   byId("topScore").textContent = formatScore(scores.length ? Math.max(...scores) : initialRating);
   byId("avgScore").textContent = formatScore(avg);
+}
+
+function renderDayOverview() {
+  const container = byId("dayOverview");
+  if (!container) return;
+  const dates = matchDates();
+  container.innerHTML = dates.length
+    ? dates
+        .map((date) => {
+          const matches = state.matches.filter((match) => match.date === date);
+          const players = playersForDate(date).sort((a, b) => b.rating - a.rating);
+          const playerIds = new Set(matches.flatMap((match) => [...match.teamAIds, ...match.teamBIds]));
+          const summary = summarizeHistory(matches);
+          const topPlayer = players[0];
+          const locations = [...new Set(matches.map((match) => match.location).filter(Boolean))];
+          return `
+            <article class="day-card">
+              <div>
+                <span class="tag">${date}</span>
+                <h3>${matches.length} 場比賽</h3>
+                <p class="meta">${locations.length ? locations.join(" / ") : "未填場地"}</p>
+              </div>
+              <div class="day-metrics">
+                <span><strong>${playerIds.size}</strong><small>出賽選手</small></span>
+                <span><strong>${summary.totalPoints}</strong><small>總得分</small></span>
+                <span><strong>${topPlayer ? topPlayer.name : "-"}</strong><small>當日第一</small></span>
+              </div>
+              <button class="mini-action" type="button" onclick="return handleOpenDayClick(event, '${date}')">查看當日</button>
+            </article>
+          `;
+        })
+        .join("")
+    : `<p class="meta">未有比賽日紀錄。</p>`;
 }
 
 function renderLeaderboard() {
@@ -334,6 +372,38 @@ function renderHistory() {
         })
         .join("")
     : `<tr><td colspan="8">未有比賽紀錄。</td></tr>`;
+}
+
+function formatLogTime(value) {
+  try {
+    return new Date(value).toLocaleString("zh-Hant", {
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  } catch (error) {
+    return value || "";
+  }
+}
+
+function renderActivityLog() {
+  const container = byId("activityLog");
+  if (!container) return;
+  const logs = typeof readActivityLog === "function" ? readActivityLog() : [];
+  container.innerHTML = logs.length
+    ? logs
+        .map(
+          (log) => `
+            <article class="activity-item">
+              <span>${formatLogTime(log.at)}</span>
+              <strong>${log.action}</strong>
+              <p class="meta">${log.detail || ""}</p>
+            </article>
+          `
+        )
+        .join("")
+    : `<p class="meta">暫時未有操作紀錄。</p>`;
 }
 
 function renderRuleCards() {
