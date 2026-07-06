@@ -13,6 +13,29 @@ function setStatus(message, isError = false) {
   status.classList.toggle("error", isError);
 }
 
+function setCloudHealth(level, title, text = "", detail = "") {
+  const panel = byId("cloud");
+  const badge = byId("cloudHealthBadge");
+  const titleNode = byId("cloudHealthTitle");
+  const textNode = byId("cloudHealthText");
+  const detailNode = byId("cloudHealthDetail");
+  if (!panel || !badge || !titleNode || !textNode || !detailNode) return;
+
+  const safeLevel = ["ok", "checking", "error", "local"].includes(level) ? level : "checking";
+  const labels = {
+    ok: "已連接",
+    checking: "檢查中",
+    error: "連不到",
+    local: "本機"
+  };
+
+  panel.className = `section cloud-health cloud-${safeLevel}`;
+  badge.textContent = labels[safeLevel];
+  titleNode.textContent = title;
+  textNode.textContent = text;
+  detailNode.textContent = detail;
+}
+
 function basePlayer(id) {
   return state.players.find((player) => player.id === id);
 }

@@ -23,9 +23,15 @@ async function initializeApp() {
   if (typeof initializeAuth === "function") {
     await initializeAuth();
   }
-  state = await loadState();
+  state = loadLocalState();
   selectedPlayerId = state.players.length ? state.players[0].id : "";
   bindEvents();
+  renderAll();
+  if (typeof updateAuthUi === "function") updateAuthUi();
+  setStatus(window.cloudSync && window.cloudSync.isConfigured() ? "正在連接雲端，畫面先顯示本機資料。" : storageModeLabel());
+
+  state = await loadState();
+  selectedPlayerId = state.players.length ? state.players[0].id : "";
   renderAll();
   if (typeof updateAuthUi === "function") updateAuthUi();
   subscribeToStateChanges(() => {
@@ -36,7 +42,7 @@ async function initializeApp() {
     if (typeof updateAuthUi === "function") updateAuthUi();
     setStatus("雲端資料已更新，排行榜已同步。");
   });
-  setStatus(storageModeLabel());
+  setStatus(storageModeLabel(), typeof isCloudConnectionError === "function" && isCloudConnectionError());
 }
 
 initializeApp().catch((error) => {

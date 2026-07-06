@@ -3,6 +3,7 @@ window.cloudSync = (() => {
   let channel = null;
   let reloadTimer = null;
   let saving = false;
+  const requestTimeoutMs = 7000;
 
   function config() {
     return window.BADMINTON_SUPABASE_CONFIG || {};
@@ -51,15 +52,33 @@ window.cloudSync = (() => {
 
   async function restRequest(table, params, options = {}) {
     const query = params instanceof URLSearchParams ? params.toString() : "";
-    const response = await fetch(`${restBaseUrl()}/rest/v1/${table}${query ? `?${query}` : ""}`, {
-      ...options,
-      headers: restHeaders(options.headers || {})
-    });
-    const text = await response.text();
-    if (!response.ok) {
-      throw new Error(text || `${table} request failed (${response.status})`);
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timeoutId = controller
+      ? window.setTimeout(() => controller.abort(), requestTimeoutMs)
+      : null;
+
+    try {
+      const response = await fetch(`${restBaseUrl()}/rest/v1/${table}${query ? `?${query}` : ""}`, {
+        ...options,
+        signal: controller ? controller.signal : options.signal,
+        headers: restHeaders(options.headers || {})
+      });
+      const text = await response.text();
+      if (!response.ok) {
+        throw new Error(text || `${table} request failed (${response.status})`);
+      }
+      return text ? JSON.parse(text) : null;
+    } catch (error) {
+      if (error && error.name === "AbortError") {
+        throw new Error("連接 Supabase 逾時，請檢查 Project URL 或網絡。");
+      }
+      if (error && /Failed to fetch|NetworkError|Load failed/i.test(error.message || "")) {
+        throw new Error("無法連接 Supabase Project URL，可能 Project 已暫停、刪除，或網絡阻擋。");
+      }
+      throw error;
+    } finally {
+      if (timeoutId) window.clearTimeout(timeoutId);
     }
-    return text ? JSON.parse(text) : null;
   }
 
   async function restSelect(table, filters = {}) {
@@ -352,26 +371,13 @@ window.cloudSync = (() => {
 
   async function testConnection() {
     if (!isConfigured()) throw new Error("未設定 Supabase URL 或 publishable key。");
-    const supabaseClient = null;
-    const testId = `sync-check-${Date.now()}`;
-    const now = new Date().toISOString();
-    const row = {
-      id: testId,
-      name: "Sync check",
-      updated_at: now
-    };
-
-    if (supabaseClient) {
-      await throwIfError(supabaseClient.from("badminton_clubs").upsert(row, { onConflict: "id" }));
-      await throwIfError(supabaseClient.from("badminton_clubs").delete().eq("id", testId));
-    } else {
-      await restUpsert("badminton_clubs", row, "id");
-      await restDelete("badminton_clubs", { id: `eq.${testId}` });
-    }
+    const cloudState = await loadStateFromCloud();
 
     return {
       ok: true,
-      transport: transportLabel()
+      transport: transportLabel(),
+      players: Array.isArray(cloudState.players) ? cloudState.players.length : 0,
+      matches: Array.isArray(cloudState.matches) ? cloudState.matches.length : 0
     };
   }
 

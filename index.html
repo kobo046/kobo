@@ -12,9 +12,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=28" />
-    <link rel="stylesheet" href="cartoon-court-v10.css?v=28" />
-    <link rel="stylesheet" href="editorial-theme.css?v=28" />
+    <link rel="stylesheet" href="styles.css?v=29" />
+    <link rel="stylesheet" href="cartoon-court-v10.css?v=29" />
+    <link rel="stylesheet" href="editorial-theme.css?v=29" />
   </head>
   <body class="viewer-mode">
     <header class="app-header">
@@ -28,6 +28,7 @@
         </a>
         <div class="nav-links">
           <a href="#leaderboard">排行榜</a>
+          <a href="#cloud">雲端</a>
           <a href="#days">比賽日</a>
           <a href="#players">選手</a>
           <a class="editor-only" href="#match">新增比賽</a>
@@ -82,6 +83,26 @@
           <span id="avgScore">5.00</span>
           <p>平均分數</p>
         </article>
+      </section>
+
+      <section id="cloud" class="section cloud-health cloud-checking" aria-live="polite">
+        <div>
+          <p class="eyebrow">Cloud sync</p>
+          <h2>雲端狀態</h2>
+          <p id="cloudHealthDetail" class="hint">正在檢查 Supabase 連線。</p>
+        </div>
+        <div class="cloud-health-card">
+          <span id="cloudHealthBadge" class="cloud-badge">檢查中</span>
+          <strong id="cloudHealthTitle">正在連接雲端</strong>
+          <p id="cloudHealthText">如果雲端暫時連不到，網站會先顯示本機資料。</p>
+        </div>
+        <div class="shortcut-actions">
+          <button class="mini-action" type="button" onclick="return handleCloudCheckClick(event)">重新檢查</button>
+          <a class="mini-action" href="#leaderboard">排行榜</a>
+          <a class="mini-action" href="#days">比賽日</a>
+          <a class="mini-action editor-only" href="#match">新增比賽</a>
+          <a class="mini-action" href="#history">比賽歷史</a>
+        </div>
       </section>
 
       <section id="access" class="section workspace auth-section">
@@ -341,18 +362,26 @@
       </section>
     </main>
 
+    <nav class="mobile-dock" aria-label="手機快速入口">
+      <a href="#leaderboard">排行</a>
+      <a href="#cloud">雲端</a>
+      <a href="#days">日期</a>
+      <a class="editor-only" href="#match">新增</a>
+      <a href="#history">歷史</a>
+    </nav>
+
     <footer>
       <p>未設定 Supabase 時資料只會存在本機；設定 Supabase 後可多人共用同一份排行榜。</p>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js?v=28"></script>
-    <script src="cloud-storage.js?v=28"></script>
-    <script src="auth.js?v=28"></script>
-    <script src="storage.js?v=28"></script>
-    <script src="scoring.js?v=28"></script>
-    <script src="render.js?v=28"></script>
-    <script src="events.js?v=28"></script>
-    <script src="app.js?v=28"></script>
+    <script src="supabase-config.js?v=29"></script>
+    <script src="cloud-storage.js?v=29"></script>
+    <script src="auth.js?v=29"></script>
+    <script src="storage.js?v=29"></script>
+    <script src="scoring.js?v=29"></script>
+    <script src="render.js?v=29"></script>
+    <script src="events.js?v=29"></script>
+    <script src="app.js?v=29"></script>
   </body>
 </html>

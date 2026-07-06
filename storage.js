@@ -2,6 +2,8 @@ const storageKey = "badmintonPlayerRating.v2";
 const preCloudBackupKey = `${storageKey}.preCloudBackup`;
 const activityLogKey = `${storageKey}.activityLog`;
 const maxActivityLogs = 40;
+let cloudConnectionState = "local";
+let lastCloudMessage = "";
 
 const seedData = {
   players: [
@@ -139,14 +141,38 @@ function isEmptyCloudState(cloudState) {
   );
 }
 
+function cloudDetail(message) {
+  const projectUrl = window.BADMINTON_SUPABASE_CONFIG && window.BADMINTON_SUPABASE_CONFIG.url
+    ? window.BADMINTON_SUPABASE_CONFIG.url
+    : "未設定 Project URL";
+  return `${message} Project：${projectUrl}`;
+}
+
 async function loadState() {
   const localState = loadLocalState();
-  if (!window.cloudSync || !window.cloudSync.isConfigured()) return localState;
+  if (!window.cloudSync || !window.cloudSync.isConfigured()) {
+    cloudConnectionState = "local";
+    lastCloudMessage = "未設定 Supabase。";
+    if (typeof setCloudHealth === "function") {
+      setCloudHealth("local", "本機模式", "資料只會存在這部裝置。", "設定 Supabase 後才可多人同步。");
+    }
+    return localState;
+  }
   rememberLocalBeforeCloud(localState);
+  cloudConnectionState = "checking";
+  lastCloudMessage = "正在連接 Supabase。";
+  if (typeof setCloudHealth === "function") {
+    setCloudHealth("checking", "正在連接雲端", "正在向 Supabase 讀取選手和比賽資料。", cloudDetail("如果停太耐，通常是 Project URL 或網絡問題。"));
+  }
 
   try {
     const cloudState = await window.cloudSync.loadStateFromCloud();
     if (isEmptyCloudState(cloudState)) {
+      cloudConnectionState = "ok";
+      lastCloudMessage = "雲端已連接，但未有共享資料。";
+      if (typeof setCloudHealth === "function") {
+        setCloudHealth("ok", "雲端已連接", "Supabase 可讀取，但目前未有共享資料。", "如這部機有舊分數，管理員可上傳本機資料到雲端。");
+      }
       if (typeof isEditor === "function" && !isEditor()) {
         localStorage.setItem(storageKey, JSON.stringify(localState));
         setStatus("雲端暫時未有資料；只讀模式不會自動上傳本機資料。");
@@ -157,6 +183,9 @@ async function loadState() {
       if (hasMeaningfulLocalData(bootstrapState)) {
         await window.cloudSync.saveStateToCloud(bootstrapState);
         localStorage.setItem(storageKey, JSON.stringify(bootstrapState));
+        if (typeof setCloudHealth === "function") {
+          setCloudHealth("ok", "雲端已建立共享資料", `${bootstrapState.players.length} 位選手，${bootstrapState.matches.length} 場比賽已上傳。`, "其他裝置重新整理後會同步。");
+        }
         setStatus("雲端未有資料，已把這部機的本機資料上傳做共享資料。");
         return bootstrapState;
       }
@@ -168,9 +197,19 @@ async function loadState() {
 
     const nextState = normalizeState(cloudState || localState);
     localStorage.setItem(storageKey, JSON.stringify(nextState));
+    cloudConnectionState = "ok";
+    lastCloudMessage = `已讀取 ${nextState.players.length} 位選手、${nextState.matches.length} 場比賽。`;
+    if (typeof setCloudHealth === "function") {
+      setCloudHealth("ok", "雲端已連接", `已讀取 ${nextState.players.length} 位選手、${nextState.matches.length} 場比賽。`, `群組：${window.cloudSync.clubId()}（${window.cloudSync.transportLabel ? window.cloudSync.transportLabel() : "Supabase"}）`);
+    }
     return nextState;
   } catch (error) {
-    console.error(error);
+    console.warn(error);
+    cloudConnectionState = "error";
+    lastCloudMessage = error.message;
+    if (typeof setCloudHealth === "function") {
+      setCloudHealth("error", "雲端連不到", "暫時使用這部裝置的本機資料。", cloudDetail(error.message));
+    }
     setStatus(`雲端載入失敗，暫時使用本機資料：${error.message}`, true);
     return localState;
   }
@@ -180,6 +219,11 @@ async function saveState() {
   state = normalizeState(state || {});
   localStorage.setItem(storageKey, JSON.stringify(state));
   if (!window.cloudSync || !window.cloudSync.isConfigured()) {
+    cloudConnectionState = "local";
+    lastCloudMessage = "未設定 Supabase。";
+    if (typeof setCloudHealth === "function") {
+      setCloudHealth("local", "本機模式", "資料只儲存在這部裝置。", "未設定 Supabase。");
+    }
     return {
       cloud: false,
       error: false,
@@ -188,12 +232,21 @@ async function saveState() {
   }
 
   try {
+    cloudConnectionState = "checking";
+    if (typeof setCloudHealth === "function") {
+      setCloudHealth("checking", "正在同步雲端", "正在把最新資料寫入 Supabase。", "");
+    }
     await window.cloudSync.saveStateToCloud(state);
     const cloudState = await window.cloudSync.loadStateFromCloud();
     const cloudPlayers = Array.isArray(cloudState && cloudState.players) ? cloudState.players.length : 0;
     const cloudMatches = Array.isArray(cloudState && cloudState.matches) ? cloudState.matches.length : 0;
 
     if (cloudPlayers >= state.players.length && cloudMatches >= state.matches.length) {
+      cloudConnectionState = "ok";
+      lastCloudMessage = `已同步 ${cloudPlayers} 位選手、${cloudMatches} 場比賽。`;
+      if (typeof setCloudHealth === "function") {
+        setCloudHealth("ok", "雲端已同步", `已同步 ${cloudPlayers} 位選手、${cloudMatches} 場比賽。`, "其他裝置重新整理後會見到最新資料。");
+      }
       return {
         cloud: true,
         error: false,
@@ -201,13 +254,23 @@ async function saveState() {
       };
     }
 
+    cloudConnectionState = "error";
+    lastCloudMessage = `雲端只有 ${cloudPlayers} 位選手、${cloudMatches} 場比賽。`;
+    if (typeof setCloudHealth === "function") {
+      setCloudHealth("error", "雲端驗證未完成", `本機有 ${state.players.length} 位選手、${state.matches.length} 場比賽。`, lastCloudMessage);
+    }
     return {
       cloud: false,
       error: true,
       message: `雲端同步未完成：本機有 ${state.players.length} 位選手、${state.matches.length} 場比賽，但雲端只有 ${cloudPlayers} 位選手、${cloudMatches} 場比賽。`
     };
   } catch (error) {
-    console.error(error);
+    console.warn(error);
+    cloudConnectionState = "error";
+    lastCloudMessage = error.message;
+    if (typeof setCloudHealth === "function") {
+      setCloudHealth("error", "雲端儲存失敗", "資料已先暫存在這部裝置。", cloudDetail(error.message));
+    }
     setStatus(`雲端儲存失敗，本機已暫存：${error.message}`, true);
     return {
       cloud: false,
@@ -219,6 +282,11 @@ async function saveState() {
 
 async function uploadLocalStateToCloud() {
   if (!window.cloudSync || !window.cloudSync.isConfigured()) {
+    cloudConnectionState = "local";
+    lastCloudMessage = "未設定 Supabase。";
+    if (typeof setCloudHealth === "function") {
+      setCloudHealth("local", "本機模式", "未能上傳到雲端。", "未設定 Supabase。");
+    }
     setStatus("未設定 Supabase，暫時未能上傳到雲端。", true);
     return false;
   }
@@ -246,8 +314,18 @@ async function uploadLocalStateToCloud() {
   localStorage.setItem(preCloudBackupKey, JSON.stringify(state));
   renderAll();
   if (cloudPlayers >= state.players.length && cloudMatches >= state.matches.length) {
+    cloudConnectionState = "ok";
+    lastCloudMessage = `已上傳 ${cloudPlayers} 位選手、${cloudMatches} 場比賽。`;
+    if (typeof setCloudHealth === "function") {
+      setCloudHealth("ok", "雲端已同步", lastCloudMessage, "其他裝置重新整理後會同步。");
+    }
     setStatus(`已把本機資料上傳到雲端（${cloudPlayers} 位選手，${cloudMatches} 場比賽），其他裝置重新整理後會同步。`);
   } else {
+    cloudConnectionState = "error";
+    lastCloudMessage = `雲端只有 ${cloudPlayers} 位選手、${cloudMatches} 場比賽。`;
+    if (typeof setCloudHealth === "function") {
+      setCloudHealth("error", "上傳後驗證未完成", `本機有 ${state.players.length} 位選手、${state.matches.length} 場比賽。`, lastCloudMessage);
+    }
     setStatus(`上傳後驗證未完成：本機有 ${state.players.length} 位選手、${state.matches.length} 場比賽，但雲端只有 ${cloudPlayers} 位選手、${cloudMatches} 場比賽。`, true);
   }
   return true;
@@ -255,6 +333,7 @@ async function uploadLocalStateToCloud() {
 
 function subscribeToStateChanges(onRemoteState) {
   if (!window.cloudSync || !window.cloudSync.isConfigured()) return;
+  if (cloudConnectionState === "error") return;
   window.cloudSync.subscribe((remoteState) => {
     state = normalizeState(remoteState);
     localStorage.setItem(storageKey, JSON.stringify(state));
@@ -262,8 +341,18 @@ function subscribeToStateChanges(onRemoteState) {
   });
 }
 
+function isCloudConnectionError() {
+  return cloudConnectionState === "error";
+}
+
 function storageModeLabel() {
   if (window.cloudSync && window.cloudSync.isConfigured()) {
+    if (cloudConnectionState === "error") {
+      return `雲端目前連不到，暫時使用本機資料：${lastCloudMessage}`;
+    }
+    if (cloudConnectionState === "checking") {
+      return "正在連接雲端，請稍等。";
+    }
     const transport = window.cloudSync.transportLabel ? window.cloudSync.transportLabel() : "Supabase";
     return `雲端同步模式：${window.cloudSync.clubId()}（${transport}）`;
   }

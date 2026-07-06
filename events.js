@@ -400,17 +400,28 @@ async function handleUploadCloudClick(event) {
 
 async function handleCloudCheckClick(event) {
   if (event) event.preventDefault();
-  if (!guardEditorAction("測試雲端寫入")) return false;
   try {
     if (!window.cloudSync || !window.cloudSync.testConnection) {
+      if (typeof setCloudHealth === "function") {
+        setCloudHealth("local", "本機模式", "同步程式未載入。", "請檢查 supabase-config.js 和 cloud-storage.js。");
+      }
       setStatus("雲端檢查失敗：同步程式未載入。", true);
       return false;
     }
+    if (typeof setCloudHealth === "function") {
+      setCloudHealth("checking", "正在檢查雲端", "正在讀取 Supabase 資料。", "");
+    }
     const result = await window.cloudSync.testConnection();
-    setStatus(`雲端連線正常，可以寫入 Supabase（${result.transport}）。`);
+    if (typeof setCloudHealth === "function") {
+      setCloudHealth("ok", "雲端讀取正常", `雲端有 ${result.players} 位選手、${result.matches} 場比賽。`, `連線方式：${result.transport}`);
+    }
+    setStatus(`雲端讀取正常：${result.players} 位選手、${result.matches} 場比賽（${result.transport}）。`);
   } catch (error) {
+    if (typeof setCloudHealth === "function") {
+      setCloudHealth("error", "雲端連不到", "暫時請以本機資料或備份操作。", error.message);
+    }
     setStatus(`雲端檢查失敗：${error.message}`, true);
-    console.error(error);
+    console.warn(error);
   }
   return false;
 }

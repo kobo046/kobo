@@ -504,6 +504,82 @@ body.editor-mode .auth-status {
   color: var(--muted);
 }
 
+.cloud-health {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 360px) auto;
+  align-items: center;
+  gap: 18px;
+  margin-top: 22px;
+  padding-top: 24px;
+  padding-bottom: 24px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.cloud-health h2 {
+  font-size: 28px;
+}
+
+.cloud-health-card {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fbf7;
+}
+
+.cloud-health-card strong {
+  color: var(--green-dark);
+  font-size: 18px;
+}
+
+.cloud-health-card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.cloud-badge {
+  width: fit-content;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #eef4ef;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.cloud-ok .cloud-badge {
+  background: var(--mint);
+  color: var(--green-dark);
+}
+
+.cloud-error .cloud-badge {
+  background: #fff3f1;
+  color: var(--rose);
+}
+
+.cloud-local .cloud-badge {
+  background: #eef1f3;
+  color: var(--blue);
+}
+
+.shortcut-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.shortcut-actions .mini-action {
+  min-height: 38px;
+}
+
+.mobile-dock {
+  display: none;
+}
+
 .workspace,
 .match-section {
   background: var(--panel);
@@ -1129,7 +1205,7 @@ footer {
 }
 
 footer {
-  padding: 28px 24px 46px;
+  padding: 28px 24px calc(46px + env(safe-area-inset-bottom));
   text-align: center;
   font-size: 13px;
 }
@@ -1193,6 +1269,7 @@ footer {
   .player-grid,
   .team-cards,
   .day-grid,
+  .cloud-health,
   .leaderboard-summary,
   .history-summary,
   .team-input,
@@ -1212,6 +1289,44 @@ footer {
   .quick-actions {
     display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .shortcut-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: stretch;
+  }
+
+  .mobile-dock {
+    position: fixed;
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(12px, env(safe-area-inset-bottom));
+    left: max(12px, env(safe-area-inset-left));
+    z-index: 20;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+    padding: 8px;
+    border: 1px solid rgba(215, 225, 221, 0.92);
+    border-radius: 16px;
+    background: rgba(255, 254, 249, 0.94);
+    box-shadow: 0 16px 36px rgba(16, 25, 22, 0.18);
+    backdrop-filter: blur(12px);
+  }
+
+  .mobile-dock a {
+    display: grid;
+    min-height: 42px;
+    place-items: center;
+    border-radius: 11px;
+    background: #f4f8f1;
+    color: var(--green-dark);
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  body.viewer-mode .mobile-dock {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .stats-band {
