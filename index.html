@@ -12,9 +12,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=29" />
-    <link rel="stylesheet" href="cartoon-court-v10.css?v=29" />
-    <link rel="stylesheet" href="editorial-theme.css?v=29" />
+    <link rel="stylesheet" href="styles.css?v=30" />
+    <link rel="stylesheet" href="cartoon-court-v10.css?v=30" />
+    <link rel="stylesheet" href="editorial-theme.css?v=30" />
   </head>
   <body class="viewer-mode">
     <header class="app-header">
@@ -374,14 +374,30 @@
       <p>未設定 Supabase 時資料只會存在本機；設定 Supabase 後可多人共用同一份排行榜。</p>
     </footer>
 
+    <div id="saveConfirmOverlay" class="save-confirm-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="saveConfirmTitle">
+      <section class="save-confirm-panel">
+        <div class="save-confirm-icon" aria-hidden="true">✓</div>
+        <div class="save-confirm-content">
+          <p class="eyebrow">Saved match</p>
+          <h2 id="saveConfirmTitle">比賽已儲存</h2>
+          <p id="saveConfirmCloud" class="save-confirm-cloud">正在確認儲存狀態。</p>
+          <div id="saveConfirmDetails" class="save-confirm-details"></div>
+          <div class="save-confirm-actions">
+            <button class="primary-action" type="button" onclick="return handleSaveConfirmCloseClick(event)">知道</button>
+            <button class="secondary-action" type="button" onclick="return handleSaveConfirmHistoryClick(event)">查看比賽歷史</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js?v=29"></script>
-    <script src="cloud-storage.js?v=29"></script>
-    <script src="auth.js?v=29"></script>
-    <script src="storage.js?v=29"></script>
-    <script src="scoring.js?v=29"></script>
-    <script src="render.js?v=29"></script>
-    <script src="events.js?v=29"></script>
-    <script src="app.js?v=29"></script>
+    <script src="supabase-config.js?v=30"></script>
+    <script src="cloud-storage.js?v=30"></script>
+    <script src="auth.js?v=30"></script>
+    <script src="storage.js?v=30"></script>
+    <script src="scoring.js?v=30"></script>
+    <script src="render.js?v=30"></script>
+    <script src="events.js?v=30"></script>
+    <script src="app.js?v=30"></script>
   </body>
 </html>

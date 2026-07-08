@@ -7,6 +7,8 @@ function selectedPlayerIds() {
   ];
 }
 
+let lastSavedConfirmationDate = "";
+
 function canEditData() {
   return typeof isEditor === "function" && isEditor();
 }
@@ -37,6 +39,53 @@ function readMatchForm() {
     scoreA: Number(byId("scoreA").value),
     scoreB: Number(byId("scoreB").value)
   };
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function hideSaveConfirmation() {
+  const overlay = byId("saveConfirmOverlay");
+  if (overlay) overlay.classList.add("hidden");
+}
+
+function showSaveConfirmation(match, syncResult, wasEditing) {
+  const overlay = byId("saveConfirmOverlay");
+  if (!overlay || !match) return;
+  const title = syncResult && syncResult.cloud
+    ? wasEditing ? "比賽更新成功" : "比賽儲存成功"
+    : syncResult && syncResult.error
+      ? "已儲存本機，雲端未同步"
+      : "比賽已儲存到本機";
+  const cloudText = syncResult && syncResult.cloud
+    ? "雲端同步成功，其他裝置重新整理後會見到。"
+    : syncResult && syncResult.message
+      ? syncResult.message
+      : "資料已儲存在這部裝置。";
+  const tone = syncResult && syncResult.cloud ? "success" : syncResult && syncResult.error ? "warning" : "local";
+  const detailRows = [
+    ["日期", match.date],
+    ["A 隊", teamLabel(match.teamAIds)],
+    ["B 隊", teamLabel(match.teamBIds)],
+    ["比分", `${match.scoreA}:${match.scoreB}`],
+    ["場地", match.location || "未填"],
+    ["備註", match.note || "未填"]
+  ];
+
+  overlay.className = `save-confirm-overlay save-confirm-${tone}`;
+  byId("saveConfirmTitle").textContent = title;
+  byId("saveConfirmCloud").textContent = cloudText;
+  byId("saveConfirmDetails").innerHTML = detailRows
+    .map(([label, value]) => `<span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong>`)
+    .join("");
+  byId("saveConfirmOverlay").classList.remove("hidden");
+  lastSavedConfirmationDate = match.date || "";
 }
 
 function setMatchFormFromMatch(match, options = {}) {
@@ -123,6 +172,7 @@ async function saveMatch(event) {
   } else if (syncResult) {
     setStatus(`比賽已儲存，但${syncResult.message}`, Boolean(syncResult.error));
   }
+  showSaveConfirmation(match, syncResult, wasEditing);
 }
 
 async function addPlayer(event) {
@@ -469,6 +519,24 @@ function handleClearActivityLogClick(event) {
   return false;
 }
 
+function handleSaveConfirmCloseClick(event) {
+  if (event) event.preventDefault();
+  hideSaveConfirmation();
+  return false;
+}
+
+function handleSaveConfirmHistoryClick(event) {
+  if (event) event.preventDefault();
+  hideSaveConfirmation();
+  if (lastSavedConfirmationDate) {
+    selectedHistoryDate = lastSavedConfirmationDate;
+    historyMode = "day";
+    renderHistory();
+  }
+  location.hash = "#history";
+  return false;
+}
+
 window.handleAddPlayerClick = handleAddPlayerClick;
 window.handlePreviewClick = handlePreviewClick;
 window.handleSaveMatchClick = handleSaveMatchClick;
@@ -486,6 +554,12 @@ window.handleUseLastMatchClick = handleUseLastMatchClick;
 window.handleSwapTeamsClick = handleSwapTeamsClick;
 window.handleResetScoresClick = handleResetScoresClick;
 window.handleClearActivityLogClick = handleClearActivityLogClick;
+window.handleSaveConfirmCloseClick = handleSaveConfirmCloseClick;
+window.handleSaveConfirmHistoryClick = handleSaveConfirmHistoryClick;
 window.addEventListener("error", (event) => {
   setStatus(`程式錯誤：${event.message}`, true);
+});
+
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") hideSaveConfirmation();
 });
