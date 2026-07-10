@@ -9,6 +9,19 @@ function selectedPlayerIds() {
 
 let lastSavedConfirmationDate = "";
 
+function setActionBusy(button, isBusy, busyLabel = "處理中…") {
+  if (!button) return;
+  if (isBusy) {
+    button.dataset.originalLabel = button.textContent;
+    button.textContent = busyLabel;
+    button.disabled = true;
+    button.classList.add("is-busy");
+    return;
+  }
+  button.disabled = false;
+  button.classList.remove("is-busy");
+}
+
 function canEditData() {
   return typeof isEditor === "function" && isEditor();
 }
@@ -147,32 +160,41 @@ function renderPreview() {
 async function saveMatch(event) {
   if (event) event.preventDefault();
   if (!guardEditorAction("儲存比賽")) return;
+  const saveButton = byId("saveMatchButton");
+  if (saveButton && saveButton.disabled) return;
   const match = renderPreview();
   if (!match) return;
+  setActionBusy(saveButton, true, "正在儲存…");
   const wasEditing = Boolean(editingMatchId);
   const logDetail = `${match.date} ${teamLabel(match.teamAIds)} ${match.scoreA}:${match.scoreB} ${teamLabel(match.teamBIds)}`;
+  const savedMatch = { ...match, updatedAt: new Date().toISOString() };
 
-  if (editingMatchId) {
-    state.matches = state.matches.map((item) => (item.id === editingMatchId ? { ...match, id: editingMatchId } : item));
-    setStatus("比賽已更新，排行榜已重新計算。");
-  } else {
-    state.matches.push(match);
-    setStatus(`比賽已儲存。目前共有 ${state.matches.length} 場比賽。`);
-  }
+  try {
+    if (editingMatchId) {
+      state.matches = state.matches.map((item) => (item.id === editingMatchId ? { ...savedMatch, id: editingMatchId } : item));
+      setStatus("比賽已更新，排行榜已重新計算。");
+    } else {
+      state.matches.push(savedMatch);
+      setStatus(`比賽已儲存。目前共有 ${state.matches.length} 場比賽。`);
+    }
 
-  editingMatchId = "";
-  const syncResult = await saveState();
-  if (typeof recordActivity === "function") recordActivity(wasEditing ? "編輯比賽" : "新增比賽", logDetail);
-  clearMatchEditingUi();
-  renderAll();
-  byId("ratingPreview").className = "preview-box visible";
-  byId("ratingPreview").innerHTML = "<strong>比賽已儲存，個人排行榜已更新。</strong>";
-  if (syncResult && syncResult.cloud) {
-    setStatus(`比賽已儲存，${syncResult.message}`);
-  } else if (syncResult) {
-    setStatus(`比賽已儲存，但${syncResult.message}`, Boolean(syncResult.error));
+    editingMatchId = "";
+    const syncResult = await saveState({ backupReason: wasEditing ? "編輯比賽前" : "新增比賽前" });
+    if (typeof recordActivity === "function") recordActivity(wasEditing ? "編輯比賽" : "新增比賽", logDetail);
+    clearMatchEditingUi();
+    renderAll();
+    byId("ratingPreview").className = "preview-box visible";
+    byId("ratingPreview").innerHTML = "<strong>比賽已儲存，個人排行榜已更新。</strong>";
+    if (syncResult && syncResult.cloud) {
+      setStatus(`比賽已儲存，${syncResult.message}`);
+    } else if (syncResult) {
+      setStatus(`比賽已儲存，但${syncResult.message}`, Boolean(syncResult.error));
+    }
+    showSaveConfirmation(savedMatch, syncResult, wasEditing);
+  } finally {
+    setActionBusy(saveButton, false);
+    if (saveButton) saveButton.textContent = editingMatchId ? "更新比賽" : "儲存比賽";
   }
-  showSaveConfirmation(match, syncResult, wasEditing);
 }
 
 async function addPlayer(event) {
@@ -192,7 +214,8 @@ async function addPlayer(event) {
   const player = {
     id: `p-${Date.now()}`,
     name,
-    gender: byId("newPlayerGender").value
+    gender: byId("newPlayerGender").value,
+    updatedAt: new Date().toISOString()
   };
   state.players.push(player);
   selectedPlayerId = player.id;
@@ -208,12 +231,15 @@ async function deletePlayer(playerId) {
   const player = basePlayer(playerId);
   if (!player) return;
   const relatedMatches = state.matches.filter((match) => [...match.teamAIds, ...match.teamBIds].includes(playerId)).length;
+  const relatedMatchIds = state.matches
+    .filter((match) => [...match.teamAIds, ...match.teamBIds].includes(playerId))
+    .map((match) => match.id);
   const confirmed = window.confirm(`確定刪除選手「${player.name}」？會同時刪除 ${relatedMatches} 場包含此選手的比賽紀錄。`);
   if (!confirmed) return;
   state.players = state.players.filter((item) => item.id !== playerId);
   state.matches = state.matches.filter((match) => ![...match.teamAIds, ...match.teamBIds].includes(playerId));
   if (selectedPlayerId === playerId) selectedPlayerId = state.players.length ? state.players[0].id : "";
-  await saveState();
+  await saveState({ deletedPlayerIds: [playerId], deletedMatchIds: relatedMatchIds, backupReason: "刪除選手前" });
   if (typeof recordActivity === "function") recordActivity("刪除選手", `${player.name}，連同 ${relatedMatches} 場比賽`);
   renderAll();
   setStatus(`已刪除選手：${player.name}`);
@@ -249,7 +275,7 @@ async function deleteMatch(matchId) {
   if (!confirmed) return;
   state.matches = state.matches.filter((item) => item.id !== matchId);
   if (editingMatchId === matchId) clearMatchEditingUi();
-  await saveState();
+  await saveState({ deletedMatchIds: [matchId], backupReason: "刪除比賽前" });
   if (typeof recordActivity === "function") recordActivity("刪除比賽", `${match.date} ${teamLabel(match.teamAIds)} ${match.scoreA}:${match.scoreB} ${teamLabel(match.teamBIds)}`);
   renderAll();
   setStatus("比賽已刪除，排行榜已重新計算。");
@@ -266,10 +292,14 @@ async function resetData() {
   if (!guardEditorAction("重設資料")) return;
   const confirmed = window.confirm("會清除目前瀏覽器已儲存的比賽同選手資料，並回復示範資料。確定要繼續？");
   if (!confirmed) return;
-  state = normalizeState(clone(seedData));
+  const resetState = normalizeState(clone(seedData));
+  const resetPlayerIds = new Set(resetState.players.map((player) => player.id));
+  const deletedPlayerIds = state.players.map((player) => player.id).filter((id) => !resetPlayerIds.has(id));
+  const deletedMatchIds = state.matches.map((match) => match.id);
+  state = resetState;
   selectedPlayerId = state.players[0].id;
   clearMatchEditingUi();
-  await saveState();
+  await saveState({ deletedPlayerIds, deletedMatchIds, backupReason: "重設資料前" });
   if (typeof recordActivity === "function") recordActivity("重設資料", "回復示範資料");
   renderAll();
   setStatus("已重設示範資料。");
@@ -450,6 +480,9 @@ async function handleUploadCloudClick(event) {
 
 async function handleCloudCheckClick(event) {
   if (event) event.preventDefault();
+  const button = event && event.currentTarget instanceof HTMLButtonElement ? event.currentTarget : null;
+  if (button && button.disabled) return false;
+  setActionBusy(button, true, "檢查中…");
   try {
     if (!window.cloudSync || !window.cloudSync.testConnection) {
       if (typeof setCloudHealth === "function") {
@@ -472,7 +505,29 @@ async function handleCloudCheckClick(event) {
     }
     setStatus(`雲端檢查失敗：${error.message}`, true);
     console.warn(error);
+  } finally {
+    if (button) {
+      const label = button.dataset.originalLabel || "重新檢查";
+      setActionBusy(button, false);
+      button.textContent = label;
+    }
   }
+  return false;
+}
+
+async function handleRestoreAutomaticBackupClick(event) {
+  if (event) event.preventDefault();
+  if (!guardEditorAction("還原本機備份")) return false;
+  const confirmed = window.confirm("會將這部裝置最完整的自動備份與現有資料合併，不會刪除雲端已有記錄。確定繼續？");
+  if (!confirmed) return false;
+  const result = await restoreMostCompleteAutomaticBackup();
+  if (!result.ok) {
+    setStatus(result.message, true);
+    return false;
+  }
+  selectedPlayerId = state.players.length ? state.players[0].id : "";
+  renderAll();
+  setStatus(`${result.message} 備份時間：${new Date(result.backup.createdAt).toLocaleString("zh-HK")}。`);
   return false;
 }
 
@@ -556,6 +611,7 @@ window.handleResetScoresClick = handleResetScoresClick;
 window.handleClearActivityLogClick = handleClearActivityLogClick;
 window.handleSaveConfirmCloseClick = handleSaveConfirmCloseClick;
 window.handleSaveConfirmHistoryClick = handleSaveConfirmHistoryClick;
+window.handleRestoreAutomaticBackupClick = handleRestoreAutomaticBackupClick;
 window.addEventListener("error", (event) => {
   setStatus(`程式錯誤：${event.message}`, true);
 });

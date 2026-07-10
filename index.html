@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="styles.css?v=30" />
     <link rel="stylesheet" href="cartoon-court-v10.css?v=30" />
     <link rel="stylesheet" href="editorial-theme.css?v=30" />
+    <link rel="stylesheet" href="ios-liquid-theme.css?v=31" />
   </head>
   <body class="viewer-mode">
     <header class="app-header">
@@ -354,6 +355,7 @@
           <button class="secondary-action editor-only" type="button" onclick="return handleCloudCheckClick(event)">檢查雲端連線</button>
           <button class="primary-action editor-only" type="button" onclick="return handleUploadCloudClick(event)">上傳本機資料到雲端</button>
           <button class="primary-action" type="button" onclick="return handleExportClick(event)">匯出備份</button>
+          <button class="secondary-action editor-only" type="button" onclick="return handleRestoreAutomaticBackupClick(event)">還原最完整本機備份</button>
           <label class="secondary-action import-button editor-only">
             匯入備份
             <input id="importFile" type="file" accept="application/json,.json" onchange="return handleImportFileChange(event)" />
@@ -391,13 +393,13 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js?v=30"></script>
-    <script src="cloud-storage.js?v=30"></script>
-    <script src="auth.js?v=30"></script>
-    <script src="storage.js?v=30"></script>
-    <script src="scoring.js?v=30"></script>
-    <script src="render.js?v=30"></script>
-    <script src="events.js?v=30"></script>
-    <script src="app.js?v=30"></script>
+    <script src="supabase-config.js?v=31"></script>
+    <script src="cloud-storage.js?v=31"></script>
+    <script src="auth.js?v=31"></script>
+    <script src="storage.js?v=31"></script>
+    <script src="scoring.js?v=31"></script>
+    <script src="render.js?v=31"></script>
+    <script src="events.js?v=31"></script>
+    <script src="app.js?v=31"></script>
   </body>
 </html>

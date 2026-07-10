@@ -1,7 +1,9 @@
 const storageKey = "badmintonPlayerRating.v2";
 const preCloudBackupKey = `${storageKey}.preCloudBackup`;
+const automaticBackupsKey = `${storageKey}.automaticBackups`;
 const activityLogKey = `${storageKey}.activityLog`;
 const maxActivityLogs = 40;
+const maxAutomaticBackups = 12;
 let cloudConnectionState = "local";
 let lastCloudMessage = "";
 
@@ -21,18 +23,20 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
-function normalizeState(input) {
-  const rawPlayers = Array.isArray(input.players) ? input.players : [];
+function normalizeState(input, options = {}) {
+  const safeInput = input && typeof input === "object" ? input : {};
+  const rawPlayers = Array.isArray(safeInput.players) ? safeInput.players : [];
   const players = rawPlayers
     .filter((player) => player && player.id && player.name)
     .map((player) => ({
       id: String(player.id),
       name: String(player.name),
-      gender: player.gender === "女" ? "女" : "男"
+      gender: player.gender === "女" ? "女" : "男",
+      updatedAt: player.updatedAt ? String(player.updatedAt) : ""
     }));
 
   const playerIds = new Set(players.map((player) => player.id));
-  const rawMatches = Array.isArray(input.matches) ? input.matches : [];
+  const rawMatches = Array.isArray(safeInput.matches) ? safeInput.matches : [];
   const matches = rawMatches
     .filter((match) => {
       const ids = [...(match.teamAIds || []), ...(match.teamBIds || [])];
@@ -56,13 +60,108 @@ function normalizeState(input) {
       teamAIds: match.teamAIds.map(String),
       teamBIds: match.teamBIds.map(String),
       scoreA: Number(match.scoreA),
-      scoreB: Number(match.scoreB)
+      scoreB: Number(match.scoreB),
+      updatedAt: match.updatedAt ? String(match.updatedAt) : ""
     }));
 
   return {
-    players: players.length ? players : clone(seedData.players),
+    players: players.length || options.allowEmpty ? players : clone(seedData.players),
     matches
   };
+}
+
+function itemTimestamp(item) {
+  const timestamp = Date.parse(item && item.updatedAt ? item.updatedAt : "");
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function tombstoneTimestamp(tombstone) {
+  const timestamp = Date.parse(tombstone && tombstone.deletedAt ? tombstone.deletedAt : "");
+  return Number.isFinite(timestamp) ? timestamp : Number.MAX_SAFE_INTEGER;
+}
+
+function mergeItems(localItems, cloudItems, tombstones = []) {
+  const merged = new Map();
+  localItems.forEach((item) => merged.set(item.id, item));
+  cloudItems.forEach((cloudItem) => {
+    const localItem = merged.get(cloudItem.id);
+    if (!localItem || itemTimestamp(cloudItem) >= itemTimestamp(localItem)) {
+      merged.set(cloudItem.id, cloudItem);
+    }
+  });
+  tombstones.forEach((tombstone) => {
+    const item = merged.get(tombstone.id);
+    if (item && tombstoneTimestamp(tombstone) >= itemTimestamp(item)) merged.delete(tombstone.id);
+  });
+  return [...merged.values()];
+}
+
+function mergeStateData(localInput, cloudInput) {
+  const localState = normalizeState(localInput || {}, { allowEmpty: true });
+  const cloudState = normalizeState(cloudInput || {}, { allowEmpty: true });
+  const deletedPlayers = Array.isArray(cloudInput && cloudInput.deletedPlayers) ? cloudInput.deletedPlayers : [];
+  const deletedMatches = Array.isArray(cloudInput && cloudInput.deletedMatches) ? cloudInput.deletedMatches : [];
+  const players = mergeItems(localState.players, cloudState.players, deletedPlayers);
+  const playerIds = new Set(players.map((player) => player.id));
+  const matches = mergeItems(localState.matches, cloudState.matches, deletedMatches).filter((match) =>
+    [...match.teamAIds, ...match.teamBIds].every((id) => playerIds.has(id))
+  );
+  return normalizeState({ players, matches }, { allowEmpty: true });
+}
+
+function readAutomaticBackups() {
+  try {
+    const backups = JSON.parse(localStorage.getItem(automaticBackupsKey));
+    return Array.isArray(backups) ? backups : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function compactStateSignature(snapshot) {
+  const source = JSON.stringify(snapshot);
+  let hash = 2166136261;
+  for (let index = 0; index < source.length; index += 1) {
+    hash ^= source.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `${source.length}-${(hash >>> 0).toString(16)}`;
+}
+
+function createAutomaticBackup(reason, value) {
+  const snapshot = normalizeState(value || {}, { allowEmpty: true });
+  if (!hasMeaningfulLocalData(snapshot)) return null;
+  const backups = readAutomaticBackups();
+  const signature = compactStateSignature(snapshot);
+  if (backups.some((backup) => backup.signature === signature && backup.reason === reason)) return backups[0] || null;
+  const entry = {
+    id: `backup-${Date.now()}`,
+    createdAt: new Date().toISOString(),
+    reason,
+    signature,
+    state: snapshot
+  };
+  backups.unshift(entry);
+  const keptBackups = backups.slice(0, maxAutomaticBackups);
+  while (keptBackups.length > 1 && JSON.stringify(keptBackups).length > 1500000) keptBackups.pop();
+  try {
+    localStorage.setItem(automaticBackupsKey, JSON.stringify(keptBackups));
+  } catch (error) {
+    console.warn("自動備份空間不足，已保留現有網站資料。", error);
+  }
+  return entry;
+}
+
+function mostCompleteAutomaticBackup() {
+  return readAutomaticBackups()
+    .filter((backup) => backup && backup.state)
+    .sort((a, b) => {
+      const aMatches = Array.isArray(a.state.matches) ? a.state.matches.length : 0;
+      const bMatches = Array.isArray(b.state.matches) ? b.state.matches.length : 0;
+      const aPlayers = Array.isArray(a.state.players) ? a.state.players.length : 0;
+      const bPlayers = Array.isArray(b.state.players) ? b.state.players.length : 0;
+      return bMatches - aMatches || bPlayers - aPlayers || Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0);
+    })[0] || null;
 }
 
 function loadLocalState() {
@@ -128,7 +227,10 @@ function hasMeaningfulLocalData(value) {
 
 function rememberLocalBeforeCloud(localState) {
   if (!hasMeaningfulLocalData(localState)) return;
-  localStorage.setItem(preCloudBackupKey, JSON.stringify(localState));
+  createAutomaticBackup("連接雲端前", localState);
+  if (!readSavedState(preCloudBackupKey)) {
+    localStorage.setItem(preCloudBackupKey, JSON.stringify(localState));
+  }
 }
 
 function isEmptyCloudState(cloudState) {
@@ -195,12 +297,22 @@ async function loadState() {
       return localState;
     }
 
-    const nextState = normalizeState(cloudState || localState);
+    createAutomaticBackup("讀取雲端資料前", localState);
+    const mergeSource = hasMeaningfulLocalData(localState) ? localState : { players: [], matches: [] };
+    const nextState = mergeStateData(mergeSource, cloudState || {});
     localStorage.setItem(storageKey, JSON.stringify(nextState));
+    const localOnlyPlayers = nextState.players.filter((player) => !cloudState.players.some((item) => item.id === player.id)).length;
+    const localOnlyMatches = nextState.matches.filter((match) => !cloudState.matches.some((item) => item.id === match.id)).length;
+    if (typeof isEditor === "function" && isEditor() && (localOnlyPlayers || localOnlyMatches)) {
+      await window.cloudSync.saveStateToCloud(nextState, { mergeOnly: true });
+    }
     cloudConnectionState = "ok";
     lastCloudMessage = `已讀取 ${nextState.players.length} 位選手、${nextState.matches.length} 場比賽。`;
     if (typeof setCloudHealth === "function") {
-      setCloudHealth("ok", "雲端已連接", `已讀取 ${nextState.players.length} 位選手、${nextState.matches.length} 場比賽。`, `群組：${window.cloudSync.clubId()}（${window.cloudSync.transportLabel ? window.cloudSync.transportLabel() : "Supabase"}）`);
+      const mergeNote = localOnlyPlayers || localOnlyMatches
+        ? `已保留本機額外 ${localOnlyPlayers} 位選手、${localOnlyMatches} 場比賽。`
+        : `群組：${window.cloudSync.clubId()}（${window.cloudSync.transportLabel ? window.cloudSync.transportLabel() : "Supabase"}）`;
+      setCloudHealth("ok", "雲端已連接", `已安全合併 ${nextState.players.length} 位選手、${nextState.matches.length} 場比賽。`, mergeNote);
     }
     return nextState;
   } catch (error) {
@@ -215,8 +327,9 @@ async function loadState() {
   }
 }
 
-async function saveState() {
+async function saveState(options = {}) {
   state = normalizeState(state || {});
+  createAutomaticBackup(options.backupReason || "儲存資料前", readSavedState() || state);
   localStorage.setItem(storageKey, JSON.stringify(state));
   if (!window.cloudSync || !window.cloudSync.isConfigured()) {
     cloudConnectionState = "local";
@@ -236,8 +349,10 @@ async function saveState() {
     if (typeof setCloudHealth === "function") {
       setCloudHealth("checking", "正在同步雲端", "正在把最新資料寫入 Supabase。", "");
     }
-    await window.cloudSync.saveStateToCloud(state);
+    await window.cloudSync.saveStateToCloud(state, options);
     const cloudState = await window.cloudSync.loadStateFromCloud();
+    state = mergeStateData(state, cloudState || {});
+    localStorage.setItem(storageKey, JSON.stringify(state));
     const cloudPlayers = Array.isArray(cloudState && cloudState.players) ? cloudState.players.length : 0;
     const cloudMatches = Array.isArray(cloudState && cloudState.matches) ? cloudState.matches.length : 0;
 
@@ -306,7 +421,8 @@ async function uploadLocalStateToCloud() {
   }
 
   state = localState;
-  await window.cloudSync.saveStateToCloud(state);
+  createAutomaticBackup("手動上傳雲端前", state);
+  await window.cloudSync.saveStateToCloud(state, { mergeOnly: true });
   const cloudState = await window.cloudSync.loadStateFromCloud();
   const cloudPlayers = Array.isArray(cloudState && cloudState.players) ? cloudState.players.length : 0;
   const cloudMatches = Array.isArray(cloudState && cloudState.matches) ? cloudState.matches.length : 0;
@@ -335,10 +451,25 @@ function subscribeToStateChanges(onRemoteState) {
   if (!window.cloudSync || !window.cloudSync.isConfigured()) return;
   if (cloudConnectionState === "error") return;
   window.cloudSync.subscribe((remoteState) => {
-    state = normalizeState(remoteState);
+    createAutomaticBackup("接收雲端更新前", state);
+    state = mergeStateData(state, remoteState);
     localStorage.setItem(storageKey, JSON.stringify(state));
     onRemoteState(state);
   });
+}
+
+async function restoreMostCompleteAutomaticBackup() {
+  const backup = mostCompleteAutomaticBackup();
+  if (!backup) return { ok: false, message: "這部裝置未找到可還原的自動備份。" };
+  createAutomaticBackup("還原備份前", state);
+  state = mergeStateData(state, backup.state);
+  const result = await saveState({ backupReason: "還原本機備份" });
+  return {
+    ok: true,
+    result,
+    backup,
+    message: `已還原 ${state.players.length} 位選手、${state.matches.length} 場比賽。`
+  };
 }
 
 function isCloudConnectionError() {

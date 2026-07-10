@@ -113,7 +113,8 @@ window.cloudSync = (() => {
     return {
       id: row.id,
       name: row.name,
-      gender: row.gender === "女" ? "女" : "男"
+      gender: row.gender === "女" ? "女" : "男",
+      updatedAt: row.updated_at || ""
     };
   }
 
@@ -126,7 +127,8 @@ window.cloudSync = (() => {
       teamAIds: [row.team_a_player_1_id, row.team_a_player_2_id],
       teamBIds: [row.team_b_player_1_id, row.team_b_player_2_id],
       scoreA: Number(row.score_a),
-      scoreB: Number(row.score_b)
+      scoreB: Number(row.score_b),
+      updatedAt: row.updated_at || row.created_at || ""
     };
   }
 
@@ -145,22 +147,22 @@ window.cloudSync = (() => {
     if (!supabaseClient) {
       const [players, matches] = await Promise.all([
         restSelect("badminton_players", {
-          select: "id,name,gender,created_at",
+          select: "id,name,gender,is_active,created_at,updated_at",
           club_id: `eq.${currentClubId}`,
-          is_active: "eq.true",
           order: "created_at.asc"
         }),
         restSelect("badminton_matches", {
           select: "*",
           club_id: `eq.${currentClubId}`,
-          deleted_at: "is.null",
           order: "match_date.asc,created_at.asc"
         })
       ]);
 
       return {
-        players: asArray(players).map(mapPlayer),
-        matches: asArray(matches).map(mapMatch)
+        players: asArray(players).filter((row) => row.is_active).map(mapPlayer),
+        matches: asArray(matches).filter((row) => !row.deleted_at).map(mapMatch),
+        deletedPlayers: asArray(players).filter((row) => !row.is_active).map((row) => ({ id: row.id, deletedAt: row.updated_at || row.created_at })),
+        deletedMatches: asArray(matches).filter((row) => row.deleted_at).map((row) => ({ id: row.id, deletedAt: row.deleted_at || row.updated_at }))
       };
     }
 
@@ -218,7 +220,7 @@ window.cloudSync = (() => {
     );
   }
 
-  async function saveStateToCloud(nextState) {
+  async function saveStateToCloud(nextState, options = {}) {
     const supabaseClient = null;
     if (!isConfigured() || saving) return;
     saving = true;
@@ -246,19 +248,7 @@ window.cloudSync = (() => {
         }
       }
 
-      const existingPlayers = asArray(
-        supabaseClient
-          ? await throwIfError(
-              supabaseClient.from("badminton_players").select("id").eq("club_id", currentClubId).eq("is_active", true)
-            )
-          : await restSelect("badminton_players", {
-              select: "id",
-              club_id: `eq.${currentClubId}`,
-              is_active: "eq.true"
-            })
-      );
-      const activePlayerIds = new Set(safeState.players.map((player) => player.id));
-      const inactivePlayerIds = existingPlayers.map((player) => player.id).filter((id) => !activePlayerIds.has(id));
+      const inactivePlayerIds = Array.isArray(options.deletedPlayerIds) ? options.deletedPlayerIds : [];
       if (inactivePlayerIds.length) {
         if (supabaseClient) {
           await throwIfError(
@@ -302,19 +292,7 @@ window.cloudSync = (() => {
         }
       }
 
-      const existingMatches = asArray(
-        supabaseClient
-          ? await throwIfError(
-              supabaseClient.from("badminton_matches").select("id").eq("club_id", currentClubId).is("deleted_at", null)
-            )
-          : await restSelect("badminton_matches", {
-              select: "id",
-              club_id: `eq.${currentClubId}`,
-              deleted_at: "is.null"
-            })
-      );
-      const activeMatchIds = new Set(safeState.matches.map((match) => match.id));
-      const deletedMatchIds = existingMatches.map((match) => match.id).filter((id) => !activeMatchIds.has(id));
+      const deletedMatchIds = Array.isArray(options.deletedMatchIds) ? options.deletedMatchIds : [];
       if (deletedMatchIds.length) {
         if (supabaseClient) {
           await throwIfError(
