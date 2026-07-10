@@ -153,7 +153,17 @@ function createAutomaticBackup(reason, value) {
 }
 
 function mostCompleteAutomaticBackup() {
-  return readAutomaticBackups()
+  const backups = readAutomaticBackups();
+  const legacyBackup = readSavedState(preCloudBackupKey);
+  if (hasMeaningfulLocalData(legacyBackup)) {
+    backups.push({
+      id: "legacy-pre-cloud-backup",
+      createdAt: "",
+      reason: "舊版連線前備份",
+      state: normalizeState(legacyBackup, { allowEmpty: true })
+    });
+  }
+  return backups
     .filter((backup) => backup && backup.state)
     .sort((a, b) => {
       const aMatches = Array.isArray(a.state.matches) ? a.state.matches.length : 0;

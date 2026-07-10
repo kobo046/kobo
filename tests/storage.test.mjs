@@ -72,16 +72,17 @@ const tests = [
     }
   ],
   [
-    "automatic recovery selects the backup with the most match records",
+    "automatic recovery includes the legacy pre-cloud backup and selects the most complete copy",
     () => {
       const context = createContext();
       context.shortState = { players: players(), matches: [match("m1")] };
       context.fullState = { players: players(), matches: [match("m1"), match("m2"), match("m3")] };
       vm.runInContext('createAutomaticBackup("short", shortState)', context);
-      vm.runInContext('createAutomaticBackup("full", fullState)', context);
+      vm.runInContext('localStorage.setItem("badmintonPlayerRating.v2.preCloudBackup", JSON.stringify(fullState))', context);
       const backup = vm.runInContext("mostCompleteAutomaticBackup()", context);
 
       assert.equal(backup.state.matches.length, 3);
+      assert.equal(backup.reason, "舊版連線前備份");
     }
   ]
 ];
