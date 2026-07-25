@@ -3,6 +3,7 @@ window.cloudSync = (() => {
   let channel = null;
   let reloadTimer = null;
   let saving = false;
+  let saveQueue = Promise.resolve();
   const requestTimeoutMs = 7000;
 
   function config() {
@@ -220,9 +221,15 @@ window.cloudSync = (() => {
     );
   }
 
-  async function saveStateToCloud(nextState, options = {}) {
+  function selectedItems(items, changedIds) {
+    if (!Array.isArray(changedIds)) return items;
+    const ids = new Set(changedIds.map(String));
+    return items.filter((item) => ids.has(String(item.id)));
+  }
+
+  async function persistStateToCloud(nextState, options = {}) {
     const supabaseClient = null;
-    if (!isConfigured() || saving) return;
+    if (!isConfigured()) return;
     saving = true;
     try {
       const safeState = normalizeState(nextState || {});
@@ -230,13 +237,13 @@ window.cloudSync = (() => {
       const now = new Date().toISOString();
       await ensureClub();
 
-      const playerRows = safeState.players.map((player) => ({
+      const playerRows = selectedItems(safeState.players, options.changedPlayerIds).map((player) => ({
         club_id: currentClubId,
         id: player.id,
         name: player.name,
         gender: player.gender === "女" ? "女" : "男",
         is_active: true,
-        updated_at: now
+        updated_at: player.updatedAt || now
       }));
       if (playerRows.length) {
         if (supabaseClient) {
@@ -267,7 +274,7 @@ window.cloudSync = (() => {
         }
       }
 
-      const matchRows = safeState.matches.map((match) => ({
+      const matchRows = selectedItems(safeState.matches, options.changedMatchIds).map((match) => ({
         club_id: currentClubId,
         id: match.id,
         match_date: match.date || new Date().toISOString().slice(0, 10),
@@ -280,7 +287,7 @@ window.cloudSync = (() => {
         score_a: Number(match.scoreA),
         score_b: Number(match.scoreB),
         deleted_at: null,
-        updated_at: now
+        updated_at: match.updatedAt || now
       }));
       if (matchRows.length) {
         if (supabaseClient) {
@@ -313,6 +320,21 @@ window.cloudSync = (() => {
     } finally {
       saving = false;
     }
+  }
+
+  function saveStateToCloud(nextState, options = {}) {
+    if (!isConfigured()) return Promise.resolve();
+    const snapshot = normalizeState(nextState || {});
+    const safeOptions = {
+      ...options,
+      changedPlayerIds: Array.isArray(options.changedPlayerIds) ? [...options.changedPlayerIds] : undefined,
+      changedMatchIds: Array.isArray(options.changedMatchIds) ? [...options.changedMatchIds] : undefined,
+      deletedPlayerIds: Array.isArray(options.deletedPlayerIds) ? [...options.deletedPlayerIds] : undefined,
+      deletedMatchIds: Array.isArray(options.deletedMatchIds) ? [...options.deletedMatchIds] : undefined
+    };
+    const queuedSave = saveQueue.then(() => persistStateToCloud(snapshot, safeOptions));
+    saveQueue = queuedSave.catch(() => {});
+    return queuedSave;
   }
 
   function subscribe(onRemoteState) {

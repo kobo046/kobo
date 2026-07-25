@@ -179,7 +179,11 @@ async function saveMatch(event) {
     }
 
     editingMatchId = "";
-    const syncResult = await saveState({ backupReason: wasEditing ? "編輯比賽前" : "新增比賽前" });
+    const syncResult = await saveState({
+      changedPlayerIds: [],
+      changedMatchIds: [savedMatch.id],
+      backupReason: wasEditing ? "編輯比賽前" : "新增比賽前"
+    });
     if (typeof recordActivity === "function") recordActivity(wasEditing ? "編輯比賽" : "新增比賽", logDetail);
     clearMatchEditingUi();
     renderAll();
@@ -220,7 +224,7 @@ async function addPlayer(event) {
   state.players.push(player);
   selectedPlayerId = player.id;
   nameInput.value = "";
-  await saveState();
+  await saveState({ changedPlayerIds: [player.id], changedMatchIds: [] });
   if (typeof recordActivity === "function") recordActivity("新增選手", player.name);
   renderAll();
   setStatus(`已新增選手：${player.name}，初始分數 ${formatScore(initialRating)}。`);
@@ -239,7 +243,13 @@ async function deletePlayer(playerId) {
   state.players = state.players.filter((item) => item.id !== playerId);
   state.matches = state.matches.filter((match) => ![...match.teamAIds, ...match.teamBIds].includes(playerId));
   if (selectedPlayerId === playerId) selectedPlayerId = state.players.length ? state.players[0].id : "";
-  await saveState({ deletedPlayerIds: [playerId], deletedMatchIds: relatedMatchIds, backupReason: "刪除選手前" });
+  await saveState({
+    changedPlayerIds: [],
+    changedMatchIds: [],
+    deletedPlayerIds: [playerId],
+    deletedMatchIds: relatedMatchIds,
+    backupReason: "刪除選手前"
+  });
   if (typeof recordActivity === "function") recordActivity("刪除選手", `${player.name}，連同 ${relatedMatches} 場比賽`);
   renderAll();
   setStatus(`已刪除選手：${player.name}`);
@@ -275,7 +285,12 @@ async function deleteMatch(matchId) {
   if (!confirmed) return;
   state.matches = state.matches.filter((item) => item.id !== matchId);
   if (editingMatchId === matchId) clearMatchEditingUi();
-  await saveState({ deletedMatchIds: [matchId], backupReason: "刪除比賽前" });
+  await saveState({
+    changedPlayerIds: [],
+    changedMatchIds: [],
+    deletedMatchIds: [matchId],
+    backupReason: "刪除比賽前"
+  });
   if (typeof recordActivity === "function") recordActivity("刪除比賽", `${match.date} ${teamLabel(match.teamAIds)} ${match.scoreA}:${match.scoreB} ${teamLabel(match.teamBIds)}`);
   renderAll();
   setStatus("比賽已刪除，排行榜已重新計算。");
@@ -299,7 +314,13 @@ async function resetData() {
   state = resetState;
   selectedPlayerId = state.players[0].id;
   clearMatchEditingUi();
-  await saveState({ deletedPlayerIds, deletedMatchIds, backupReason: "重設資料前" });
+  await saveState({
+    changedPlayerIds: state.players.map((player) => player.id),
+    changedMatchIds: [],
+    deletedPlayerIds,
+    deletedMatchIds,
+    backupReason: "重設資料前"
+  });
   if (typeof recordActivity === "function") recordActivity("重設資料", "回復示範資料");
   renderAll();
   setStatus("已重設示範資料。");

@@ -109,6 +109,16 @@ function mergeStateData(localInput, cloudInput) {
   return normalizeState({ players, matches }, { allowEmpty: true });
 }
 
+function recordsNeedingCloudWrite(localItems, cloudItems) {
+  const cloudById = new Map(cloudItems.map((item) => [item.id, item]));
+  return localItems
+    .filter((item) => {
+      const cloudItem = cloudById.get(item.id);
+      return !cloudItem || itemTimestamp(item) > itemTimestamp(cloudItem);
+    })
+    .map((item) => item.id);
+}
+
 function readAutomaticBackups() {
   try {
     const backups = JSON.parse(localStorage.getItem(automaticBackupsKey));
@@ -311,10 +321,16 @@ async function loadState() {
     const mergeSource = hasMeaningfulLocalData(localState) ? localState : { players: [], matches: [] };
     const nextState = mergeStateData(mergeSource, cloudState || {});
     localStorage.setItem(storageKey, JSON.stringify(nextState));
-    const localOnlyPlayers = nextState.players.filter((player) => !cloudState.players.some((item) => item.id === player.id)).length;
-    const localOnlyMatches = nextState.matches.filter((match) => !cloudState.matches.some((item) => item.id === match.id)).length;
+    const playersToUpload = recordsNeedingCloudWrite(nextState.players, cloudState.players);
+    const matchesToUpload = recordsNeedingCloudWrite(nextState.matches, cloudState.matches);
+    const localOnlyPlayers = playersToUpload.length;
+    const localOnlyMatches = matchesToUpload.length;
     if (typeof isEditor === "function" && isEditor() && (localOnlyPlayers || localOnlyMatches)) {
-      await window.cloudSync.saveStateToCloud(nextState, { mergeOnly: true });
+      await window.cloudSync.saveStateToCloud(nextState, {
+        mergeOnly: true,
+        changedPlayerIds: playersToUpload,
+        changedMatchIds: matchesToUpload
+      });
     }
     cloudConnectionState = "ok";
     lastCloudMessage = `已讀取 ${nextState.players.length} 位選手、${nextState.matches.length} 場比賽。`;
@@ -430,9 +446,16 @@ async function uploadLocalStateToCloud() {
     return false;
   }
 
-  state = localState;
+  const cloudStateBeforeUpload = await window.cloudSync.loadStateFromCloud();
+  const playersToUpload = recordsNeedingCloudWrite(localState.players, cloudStateBeforeUpload.players || []);
+  const matchesToUpload = recordsNeedingCloudWrite(localState.matches, cloudStateBeforeUpload.matches || []);
+  state = mergeStateData(localState, cloudStateBeforeUpload);
   createAutomaticBackup("手動上傳雲端前", state);
-  await window.cloudSync.saveStateToCloud(state, { mergeOnly: true });
+  await window.cloudSync.saveStateToCloud(state, {
+    mergeOnly: true,
+    changedPlayerIds: playersToUpload,
+    changedMatchIds: matchesToUpload
+  });
   const cloudState = await window.cloudSync.loadStateFromCloud();
   const cloudPlayers = Array.isArray(cloudState && cloudState.players) ? cloudState.players.length : 0;
   const cloudMatches = Array.isArray(cloudState && cloudState.matches) ? cloudState.matches.length : 0;

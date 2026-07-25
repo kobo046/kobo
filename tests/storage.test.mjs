@@ -72,6 +72,24 @@ const tests = [
     }
   ],
   [
+    "cloud upload selection includes only missing or newer local records",
+    () => {
+      const context = createContext();
+      context.localItems = [
+        { id: "same", updatedAt: "2026-07-10T10:00:00Z" },
+        { id: "local-newer", updatedAt: "2026-07-10T11:00:00Z" },
+        { id: "local-only", updatedAt: "2026-07-10T09:00:00Z" }
+      ];
+      context.cloudItems = [
+        { id: "same", updatedAt: "2026-07-10T10:00:00Z" },
+        { id: "local-newer", updatedAt: "2026-07-10T10:00:00Z" }
+      ];
+      const ids = vm.runInContext("recordsNeedingCloudWrite(localItems, cloudItems)", context);
+
+      assert.deepEqual([...ids].sort(), ["local-newer", "local-only"]);
+    }
+  ],
+  [
     "automatic recovery includes the legacy pre-cloud backup and selects the most complete copy",
     () => {
       const context = createContext();

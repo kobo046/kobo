@@ -46,12 +46,14 @@ npm test
 - `styles.css?v=30`
 - `cartoon-court-v10.css?v=30`
 - `editorial-theme.css?v=30`
-- `storage.js?v=30`
-- `scoring.js?v=30`
-- `render.js?v=30`
-- `events.js?v=30`
-- `auth.js?v=30`
-- `app.js?v=30`
+- `ios-liquid-theme.css?v=33`
+- `cloud-storage.js?v=33`
+- `storage.js?v=33`
+- `scoring.js?v=32`
+- `render.js?v=32`
+- `events.js?v=33`
+- `auth.js?v=32`
+- `app.js?v=32`
 - `manifest.webmanifest`
 
 所以部署到 GitHub Pages 的子路徑，例如 `/kobo/`，可以正常運作。
