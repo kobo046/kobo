@@ -364,6 +364,7 @@ function bindEvents() {
   if (!byId("matchDate").value) byId("matchDate").value = new Date().toISOString().slice(0, 10);
   byId("searchInput").addEventListener("input", renderLeaderboard);
   byId("sortSelect").addEventListener("change", renderLeaderboard);
+  byId("mobileLeaderboardToolsButton").addEventListener("click", toggleMobileLeaderboardTools);
   byId("leaderboardAllButton").addEventListener("click", () => setLeaderboardMode("all"));
   byId("leaderboardDayButton").addEventListener("click", () => setLeaderboardMode("day"));
   byId("leaderboardDate").addEventListener("change", (event) => setLeaderboardDate(event.target.value));
@@ -374,6 +375,14 @@ function bindEvents() {
   byId("matchForm").addEventListener("submit", saveMatch);
   byId("playerForm").addEventListener("submit", addPlayer);
   byId("resetButton").addEventListener("click", resetData);
+}
+
+function toggleMobileLeaderboardTools() {
+  const tools = byId("leaderboardTools");
+  const button = byId("mobileLeaderboardToolsButton");
+  const isOpen = tools.classList.toggle("mobile-open");
+  button.setAttribute("aria-expanded", String(isOpen));
+  button.textContent = isOpen ? "收起搜尋／排序" : "搜尋／排序";
 }
 
 function setLeaderboardMode(mode) {

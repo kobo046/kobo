@@ -12,10 +12,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=34" />
+    <link rel="stylesheet" href="styles.css?v=35" />
     <link rel="stylesheet" href="cartoon-court-v10.css?v=30" />
     <link rel="stylesheet" href="editorial-theme.css?v=30" />
-    <link rel="stylesheet" href="ios-liquid-theme.css?v=33" />
+    <link rel="stylesheet" href="ios-liquid-theme.css?v=35" />
   </head>
   <body class="viewer-mode">
     <header class="app-header">
@@ -146,7 +146,17 @@
           <div id="leaderboardSummary" class="leaderboard-summary" aria-live="polite"></div>
         </div>
 
-        <div class="toolbar">
+        <button
+          id="mobileLeaderboardToolsButton"
+          class="mobile-tools-toggle"
+          type="button"
+          aria-expanded="false"
+          aria-controls="leaderboardTools"
+        >
+          搜尋／排序
+        </button>
+
+        <div id="leaderboardTools" class="toolbar leaderboard-tools">
           <label class="search-field">
             <span>搜尋</span>
             <input id="searchInput" type="search" placeholder="輸入選手姓名" />
@@ -161,6 +171,8 @@
             </select>
           </label>
         </div>
+
+        <div id="mobileLeaderboard" class="mobile-leaderboard-list" aria-live="polite"></div>
 
         <div class="table-wrap">
           <table class="leaderboard-table">
@@ -398,8 +410,8 @@
     <script src="auth.js?v=32"></script>
     <script src="storage.js?v=33"></script>
     <script src="scoring.js?v=32"></script>
-    <script src="render.js?v=34"></script>
-    <script src="events.js?v=34"></script>
+    <script src="render.js?v=35"></script>
+    <script src="events.js?v=35"></script>
     <script src="app.js?v=32"></script>
   </body>
 </html>

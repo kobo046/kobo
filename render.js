@@ -110,6 +110,7 @@ function renderLeaderboardControls(rows) {
   if (dateInput) {
     dateInput.value = selectedLeaderboardDate;
     dateInput.disabled = leaderboardMode !== "day" || !dates.length;
+    dateInput.closest(".leaderboard-date-field")?.classList.toggle("is-inactive", leaderboardMode !== "day");
   }
   if (allButton) allButton.classList.toggle("active", leaderboardMode === "all");
   if (dayButton) dayButton.classList.toggle("active", leaderboardMode === "day");
@@ -181,6 +182,43 @@ function renderLeaderboard() {
   const rows = sortedPlayers();
   const canEdit = canRenderEditorActions();
   renderLeaderboardControls(rows);
+  const mobileLeaderboard = byId("mobileLeaderboard");
+  if (mobileLeaderboard) {
+    mobileLeaderboard.innerHTML = rows.length
+      ? rows
+          .map((player, index) => {
+            const pointDiff = player.pointsFor - player.pointsAgainst;
+            return `
+              <details class="mobile-leaderboard-item">
+                <summary>
+                  <span class="rank">${index + 1}</span>
+                  <span class="mobile-player-name">
+                    <strong>${player.name}</strong>
+                    <small>${player.gender}</small>
+                  </span>
+                  <span class="score-pill">${formatScore(player.rating)}</span>
+                  <span class="mobile-detail-indicator" aria-hidden="true"></span>
+                </summary>
+                <div class="mobile-player-details">
+                  <span><small>勝率</small><strong>${winRate(player)}%</strong></span>
+                  <span><small>戰績</small><strong>${player.wins} 勝 ${player.losses} 敗</strong></span>
+                  <span><small>得失分</small><strong>${player.pointsFor}:${player.pointsAgainst} (${pointDiff >= 0 ? "+" : ""}${pointDiff})</strong></span>
+                  <span><small>最近比賽</small><strong>${player.recent || "-"}</strong></span>
+                </div>
+                ${
+                  canEdit
+                    ? `<div class="mobile-player-actions">
+                        <button class="mini-action" type="button" onclick="return handleRenamePlayerClick(event, '${player.id}')">改名</button>
+                        <button class="mini-danger" type="button" onclick="return handleDeletePlayerClick(event, '${player.id}')">刪除</button>
+                      </div>`
+                    : ""
+                }
+              </details>
+            `;
+          })
+          .join("")
+      : `<p class="mobile-leaderboard-empty">未有選手資料。</p>`;
+  }
   byId("leaderboardBody").innerHTML = rows.length
     ? rows
         .map((player, index) => {
