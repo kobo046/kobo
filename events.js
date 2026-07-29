@@ -33,6 +33,16 @@ function guardEditorAction(actionName) {
   return false;
 }
 
+function playerNameValidationMessage(name, currentPlayerId = "") {
+  if (!name) return "請輸入選手姓名。";
+  if (name.length > 30) return "選手姓名最多 30 個字。";
+  if (/[<>]/.test(name)) return "選手姓名不可包含 < 或 > 符號。";
+  const duplicate = state.players.some(
+    (player) => player.id !== currentPlayerId && player.name.toLocaleLowerCase() === name.toLocaleLowerCase()
+  );
+  return duplicate ? `${name} 已經存在。` : "";
+}
+
 function validateMatchSelection() {
   if (state.players.length < 4) return "至少需要 4 位選手才可以新增雙打比賽。";
   const ids = selectedPlayerIds();
@@ -206,12 +216,9 @@ async function addPlayer(event) {
   if (!guardEditorAction("新增選手")) return;
   const nameInput = byId("newPlayerName");
   const name = nameInput.value.trim();
-  if (!name) {
-    setStatus("請先輸入選手姓名。", true);
-    return;
-  }
-  if (state.players.some((player) => player.name === name)) {
-    setStatus(`${name} 已經存在。`, true);
+  const validationMessage = playerNameValidationMessage(name);
+  if (validationMessage) {
+    setStatus(validationMessage, true);
     return;
   }
 
@@ -228,6 +235,33 @@ async function addPlayer(event) {
   if (typeof recordActivity === "function") recordActivity("新增選手", player.name);
   renderAll();
   setStatus(`已新增選手：${player.name}，初始分數 ${formatScore(initialRating)}。`);
+}
+
+async function renamePlayer(playerId) {
+  if (!guardEditorAction("修改選手姓名")) return;
+  const player = basePlayer(playerId);
+  if (!player) return;
+  const enteredName = window.prompt("輸入新的選手姓名", player.name);
+  if (enteredName === null) return;
+  const nextName = enteredName.trim();
+  const validationMessage = playerNameValidationMessage(nextName, playerId);
+  if (validationMessage) {
+    setStatus(validationMessage, true);
+    return;
+  }
+  if (nextName === player.name) {
+    setStatus("姓名沒有變更。");
+    return;
+  }
+
+  const previousName = player.name;
+  state.players = state.players.map((item) =>
+    item.id === playerId ? { ...item, name: nextName, updatedAt: new Date().toISOString() } : item
+  );
+  await saveState({ changedPlayerIds: [playerId], changedMatchIds: [], backupReason: "修改選手姓名前" });
+  if (typeof recordActivity === "function") recordActivity("修改選手姓名", `${previousName} → ${nextName}`);
+  renderAll();
+  setStatus(`已將選手「${previousName}」改名為「${nextName}」，過往比賽紀錄保持不變。`);
 }
 
 async function deletePlayer(playerId) {
@@ -475,6 +509,20 @@ async function handleDeletePlayerClick(event, playerId) {
   return false;
 }
 
+async function handleRenamePlayerClick(event, playerId) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  try {
+    await renamePlayer(playerId);
+  } catch (error) {
+    setStatus(`修改選手姓名失敗：${error.message}`, true);
+    console.error(error);
+  }
+  return false;
+}
+
 async function handleResetClick(event) {
   if (event) event.preventDefault();
   await resetData();
@@ -620,6 +668,7 @@ window.handleCancelEditClick = handleCancelEditClick;
 window.handleEditMatchClick = handleEditMatchClick;
 window.handleDeleteMatchClick = handleDeleteMatchClick;
 window.handleDeletePlayerClick = handleDeletePlayerClick;
+window.handleRenamePlayerClick = handleRenamePlayerClick;
 window.handleResetClick = handleResetClick;
 window.handleExportClick = handleExportClick;
 window.handleUploadCloudClick = handleUploadCloudClick;

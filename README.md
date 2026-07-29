@@ -43,15 +43,15 @@ npm test
 
 此專案是純靜態網站，`index.html` 內所有 CSS、JS、manifest 都使用相對路徑，例如：
 
-- `styles.css?v=30`
+- `styles.css?v=34`
 - `cartoon-court-v10.css?v=30`
 - `editorial-theme.css?v=30`
 - `ios-liquid-theme.css?v=33`
 - `cloud-storage.js?v=33`
 - `storage.js?v=33`
 - `scoring.js?v=32`
-- `render.js?v=32`
-- `events.js?v=33`
+- `render.js?v=34`
+- `events.js?v=34`
 - `auth.js?v=32`
 - `app.js?v=32`
 - `manifest.webmanifest`

@@ -198,7 +198,10 @@ function renderLeaderboard() {
               <td>${player.wins} 勝 ${player.losses} 敗 <span class="meta">/ ${played} 場</span></td>
               <td>${player.pointsFor}:${player.pointsAgainst} <span class="meta">(${pointDiff >= 0 ? "+" : ""}${pointDiff})</span></td>
               <td>${player.recent}</td>
-              <td>${canEdit ? `<button class="mini-danger" type="button" onclick="return handleDeletePlayerClick(event, '${player.id}')">刪除</button>` : ""}</td>
+              <td>${canEdit ? `<div class="action-cell">
+                <button class="mini-action" type="button" onclick="return handleRenamePlayerClick(event, '${player.id}')">改名</button>
+                <button class="mini-danger" type="button" onclick="return handleDeletePlayerClick(event, '${player.id}')">刪除</button>
+              </div>` : ""}</td>
             </tr>
           `;
         })
@@ -212,24 +215,31 @@ function renderPlayers() {
   byId("playerList").innerHTML = players
     .map(
       (player) => `
-      <button class="player-card ${player.id === selectedPlayerId ? "active" : ""}" type="button" data-player="${player.id}">
+      <article class="player-card ${player.id === selectedPlayerId ? "active" : ""}" data-player="${player.id}" role="button" tabindex="0">
         <span class="avatar">${player.name.slice(0, 1)}</span>
         <strong>${player.name}</strong>
         <span class="meta">${player.gender} · ${formatScore(player.rating)} 分 · ${player.wins + player.losses} 場</span>
         <span class="meta">得失分：${player.pointsFor}:${player.pointsAgainst}</span>
         ${canEdit ? `<span class="card-actions">
-          <span class="mini-danger" onclick="return handleDeletePlayerClick(event, '${player.id}')">刪除</span>
+          <button class="mini-action" type="button" onclick="return handleRenamePlayerClick(event, '${player.id}')">改名</button>
+          <button class="mini-danger" type="button" onclick="return handleDeletePlayerClick(event, '${player.id}')">刪除</button>
         </span>` : ""}
-      </button>
+      </article>
     `
     )
     .join("");
 
   document.querySelectorAll(".player-card").forEach((card) => {
-    card.addEventListener("click", () => {
+    const selectPlayer = () => {
       selectedPlayerId = card.dataset.player;
       renderPlayers();
       renderPlayerDetail();
+    };
+    card.addEventListener("click", selectPlayer);
+    card.addEventListener("keydown", (event) => {
+      if (event.target !== card || !["Enter", " "].includes(event.key)) return;
+      event.preventDefault();
+      selectPlayer();
     });
   });
 }

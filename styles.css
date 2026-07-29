@@ -220,6 +220,7 @@ h1 {
 .card-actions {
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
 }
 
 .hidden {
