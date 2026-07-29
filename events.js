@@ -371,6 +371,8 @@ function bindEvents() {
   byId("historyAllButton").addEventListener("click", () => setHistoryMode("all"));
   byId("historyDayButton").addEventListener("click", () => setHistoryMode("day"));
   byId("historyDate").addEventListener("change", (event) => setHistoryDate(event.target.value));
+  byId("historyMoreButton").addEventListener("click", toggleHistoryRecords);
+  byId("activityMoreButton").addEventListener("click", toggleActivityRecords);
   byId("previewButton").addEventListener("click", () => renderPreview());
   byId("matchForm").addEventListener("submit", saveMatch);
   byId("playerForm").addEventListener("submit", addPlayer);
@@ -398,13 +400,25 @@ function setLeaderboardDate(date) {
 
 function setHistoryMode(mode) {
   historyMode = mode === "day" ? "day" : "all";
+  historyExpanded = false;
   renderHistory();
 }
 
 function setHistoryDate(date) {
   selectedHistoryDate = date;
   historyMode = "day";
+  historyExpanded = false;
   renderHistory();
+}
+
+function toggleHistoryRecords() {
+  historyExpanded = !historyExpanded;
+  renderHistory();
+}
+
+function toggleActivityRecords() {
+  activityExpanded = !activityExpanded;
+  renderActivityLog();
 }
 
 function openMatchDay(date) {

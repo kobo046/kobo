@@ -359,6 +359,7 @@ function renderHistoryControls(dates, visibleMatches) {
   if (dateInput) {
     dateInput.value = selectedDate;
     dateInput.disabled = historyMode !== "day" || !dates.length;
+    dateInput.closest(".history-date-field")?.classList.toggle("is-inactive", historyMode !== "day");
   }
 
   if (allButton) allButton.classList.toggle("active", historyMode === "all");
@@ -397,12 +398,14 @@ function renderHistory() {
   const visibleMatches = historyMode === "day"
     ? matchSummaries.filter((match) => match.date === selectedDate)
     : matchSummaries;
+  const orderedMatches = [...visibleMatches].reverse();
+  const compactLimit = window.matchMedia("(max-width: 640px)").matches ? 3 : 8;
+  const displayedMatches = historyExpanded ? orderedMatches : orderedMatches.slice(0, compactLimit);
 
   renderHistoryControls(dates, visibleMatches);
 
-  byId("historyBody").innerHTML = visibleMatches.length
-    ? [...visibleMatches]
-        .reverse()
+  byId("historyBody").innerHTML = displayedMatches.length
+    ? displayedMatches
         .map((match) => {
           const changedNames = [...match.teamAIds, ...match.teamBIds]
             .map((id) => `${playerName(id)} ${match.playerChanges[id] >= 0 ? "+" : ""}${match.playerChanges[id].toFixed(2)}`)
@@ -443,6 +446,53 @@ function renderHistory() {
         })
         .join("")
     : `<tr><td colspan="8">未有比賽紀錄。</td></tr>`;
+
+  const mobileHistory = byId("mobileHistory");
+  if (mobileHistory) {
+    mobileHistory.innerHTML = displayedMatches.length
+      ? displayedMatches
+          .map((match) => {
+            const changedNames = [...match.teamAIds, ...match.teamBIds]
+              .map((id) => `${playerName(id)} ${match.playerChanges[id] >= 0 ? "+" : ""}${match.playerChanges[id].toFixed(2)}`)
+              .join("<br>");
+            return `
+              <details class="mobile-history-item">
+                <summary>
+                  <span class="mobile-history-date">${match.date}</span>
+                  <span class="mobile-history-teams">
+                    <strong>${teamLabel(match.teamAIds)}</strong>
+                    <small>對 ${teamLabel(match.teamBIds)}</small>
+                  </span>
+                  <span class="mobile-history-score">${match.scoreA}:${match.scoreB}</span>
+                  <span class="mobile-detail-indicator" aria-hidden="true"></span>
+                </summary>
+                <div class="mobile-history-details">
+                  <span><small>場地</small><strong>${match.location || "未填"}</strong></span>
+                  <span><small>備註</small><strong>${match.note || "未填"}</strong></span>
+                  <span class="wide"><small>分數變動</small><strong>${changedNames}</strong></span>
+                </div>
+                ${
+                  canEdit
+                    ? `<div class="mobile-player-actions">
+                        <button class="mini-action" type="button" onclick="return handleEditMatchClick(event, '${match.id}')">編輯</button>
+                        <button class="mini-danger" type="button" onclick="return handleDeleteMatchClick(event, '${match.id}')">刪除</button>
+                      </div>`
+                    : ""
+                }
+              </details>
+            `;
+          })
+          .join("")
+      : `<p class="mobile-leaderboard-empty">未有比賽紀錄。</p>`;
+  }
+
+  const moreButton = byId("historyMoreButton");
+  if (moreButton) {
+    moreButton.classList.toggle("hidden", orderedMatches.length <= compactLimit);
+    moreButton.textContent = historyExpanded
+      ? "收起比賽紀錄"
+      : `顯示更多（尚有 ${orderedMatches.length - displayedMatches.length} 場）`;
+  }
 }
 
 function formatLogTime(value) {
@@ -462,8 +512,10 @@ function renderActivityLog() {
   const container = byId("activityLog");
   if (!container) return;
   const logs = typeof readActivityLog === "function" ? readActivityLog() : [];
-  container.innerHTML = logs.length
-    ? logs
+  const compactLimit = window.matchMedia("(max-width: 640px)").matches ? 3 : 6;
+  const displayedLogs = activityExpanded ? logs : logs.slice(0, compactLimit);
+  container.innerHTML = displayedLogs.length
+    ? displayedLogs
         .map(
           (log) => `
             <article class="activity-item">
@@ -475,6 +527,14 @@ function renderActivityLog() {
         )
         .join("")
     : `<p class="meta">暫時未有操作紀錄。</p>`;
+
+  const moreButton = byId("activityMoreButton");
+  if (moreButton) {
+    moreButton.classList.toggle("hidden", logs.length <= compactLimit);
+    moreButton.textContent = activityExpanded
+      ? "收起操作紀錄"
+      : `顯示更多（尚有 ${logs.length - displayedLogs.length} 項）`;
+  }
 }
 
 function renderRuleCards() {

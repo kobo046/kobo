@@ -19,14 +19,17 @@ const files = [
   "render.js",
   "events.js",
   "app.js",
-  "manifest.webmanifest"
+  "manifest.webmanifest",
+  "assets/badminton-doubles-hero.webp"
 ];
 
 await rm(outDir, { recursive: true, force: true });
 await mkdir(outDir, { recursive: true });
 
 for (const file of files) {
-  await copyFile(join(root, file), join(outDir, file));
+  const destination = join(outDir, file);
+  await mkdir(dirname(destination), { recursive: true });
+  await copyFile(join(root, file), destination);
 }
 
 console.log(`iOS web bundle ready: ${outDir}`);

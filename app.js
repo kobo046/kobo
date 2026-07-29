@@ -6,6 +6,8 @@ let historyMode = "all";
 let selectedHistoryDate = "";
 let leaderboardMode = "all";
 let selectedLeaderboardDate = "";
+let historyExpanded = false;
+let activityExpanded = false;
 
 function renderAll() {
   renderStats();

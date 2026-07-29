@@ -12,15 +12,15 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=35" />
+    <link rel="stylesheet" href="styles.css?v=36" />
     <link rel="stylesheet" href="cartoon-court-v10.css?v=30" />
     <link rel="stylesheet" href="editorial-theme.css?v=30" />
-    <link rel="stylesheet" href="ios-liquid-theme.css?v=35" />
+    <link rel="stylesheet" href="ios-liquid-theme.css?v=36" />
   </head>
   <body class="viewer-mode">
-    <header class="app-header">
+    <header id="home" class="app-header">
       <nav class="topbar" aria-label="主要導覽">
-        <a class="brand" href="#leaderboard" aria-label="首頁">
+        <a class="brand" href="#home" aria-label="首頁">
           <span class="brand-mark">羽</span>
           <span>
             <strong>羽盟</strong>
@@ -43,26 +43,22 @@
           <p class="eyebrow">Badminton rating system</p>
           <h1 id="hero-title">羽毛球個人積分排行榜</h1>
           <p>
-            每位選手由 5.00 分開始，最高 10.00 分。比賽會按勝負、比分差距，以及高分選手輸給低分選手的爆冷程度，自動調整個人分數。
+            每位選手由 5.00 分開始，最高 10.00 分。每場比賽按勝負、比分差距與爆冷程度，自動更新個人排名。
           </p>
           <div class="hero-actions">
             <a class="primary-action editor-only" href="#match">記錄新比賽</a>
             <a class="secondary-action editor-only" href="#players">新增選手</a>
           </div>
         </div>
-        <div class="court-panel" aria-hidden="true">
-          <div class="court">
-            <span class="net"></span>
-            <span class="line line-a"></span>
-            <span class="line line-b"></span>
-            <span class="court-light light-a"></span>
-            <span class="court-light light-b"></span>
-            <span class="motion-arc"></span>
-            <span class="racket racket-a"></span>
-            <span class="racket racket-b"></span>
-            <span class="shuttle"></span>
-          </div>
-        </div>
+        <figure class="hero-visual">
+          <img
+            src="assets/badminton-doubles-hero.webp"
+            width="1693"
+            height="929"
+            alt="四位選手在室內羽毛球場進行雙打比賽"
+            fetchpriority="high"
+          />
+        </figure>
       </section>
     </header>
 
@@ -331,6 +327,8 @@
             <tbody id="historyBody"></tbody>
           </table>
         </div>
+        <div id="mobileHistory" class="mobile-history-list" aria-live="polite"></div>
+        <button id="historyMoreButton" class="secondary-action list-more-button hidden" type="button">顯示更多比賽</button>
       </section>
 
       <section id="analytics" class="section analytics">
@@ -353,6 +351,7 @@
           <button class="secondary-action" type="button" onclick="return handleClearActivityLogClick(event)">清除紀錄</button>
         </div>
         <div id="activityLog" class="activity-list"></div>
+        <button id="activityMoreButton" class="secondary-action list-more-button hidden" type="button">顯示更多操作</button>
       </section>
 
       <section id="backup" class="section workspace">
@@ -410,8 +409,8 @@
     <script src="auth.js?v=32"></script>
     <script src="storage.js?v=33"></script>
     <script src="scoring.js?v=32"></script>
-    <script src="render.js?v=35"></script>
-    <script src="events.js?v=35"></script>
-    <script src="app.js?v=32"></script>
+    <script src="render.js?v=36"></script>
+    <script src="events.js?v=36"></script>
+    <script src="app.js?v=36"></script>
   </body>
 </html>

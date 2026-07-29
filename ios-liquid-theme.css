@@ -139,7 +139,7 @@ button:disabled,
 }
 
 h1 {
-  font-size: 68px;
+  font-size: 62px;
   line-height: 1.02;
 }
 
@@ -339,6 +339,11 @@ select:focus {
 
   .app-header {
     min-height: auto;
+    background: #edf7f2;
+  }
+
+  .app-header::before {
+    display: none;
   }
 
   .topbar {
@@ -360,12 +365,13 @@ select:focus {
   }
 
   .hero {
-    gap: 20px;
-    padding: 34px 18px 82px;
+    gap: 16px;
+    padding: 26px 18px 34px;
   }
 
   h1 {
-    font-size: 44px;
+    font-size: 40px;
+    line-height: 1.04;
   }
 
   .hero-copy p:not(.eyebrow) {
@@ -385,25 +391,22 @@ select:focus {
     padding: 10px 12px;
   }
 
-  .court-panel {
-    width: min(100%, 330px);
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.88);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+  .hero-visual {
+    width: 100%;
+    max-width: 420px;
+    justify-self: center;
+    border-radius: 14px;
+    box-shadow: 0 14px 34px rgba(20, 44, 35, 0.16);
   }
 
-  .court-panel::after {
-    display: none;
-  }
-
-  .court {
-    height: 138px;
+  .hero-visual img {
+    object-position: center center;
   }
 
   .stats-band {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-top: -46px;
+    margin-top: 0;
+    padding-top: 12px;
     background: rgba(255, 255, 255, 0.96);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
@@ -445,6 +448,14 @@ select:focus {
 
   .history-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .history-summary article:nth-child(n + 3) {
+    display: none;
+  }
+
+  .history-controls .history-date-field.is-inactive {
+    display: none;
   }
 
   .leaderboard-summary {
@@ -556,6 +567,124 @@ select:focus {
   .mobile-leaderboard-list {
     display: grid;
     gap: 6px;
+  }
+
+  #history .table-wrap {
+    display: none;
+  }
+
+  .mobile-history-list {
+    display: grid;
+    gap: 6px;
+  }
+
+  .mobile-history-item {
+    overflow: hidden;
+    border-bottom: 1px solid var(--line);
+    background: transparent;
+  }
+
+  .mobile-history-item summary {
+    display: grid;
+    grid-template-columns: 74px minmax(0, 1fr) 58px 18px;
+    gap: 8px;
+    min-height: 72px;
+    align-items: center;
+    padding: 8px 2px;
+    cursor: pointer;
+    list-style: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-history-item summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .mobile-history-item summary::marker {
+    content: "";
+  }
+
+  .mobile-history-date {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .mobile-history-teams {
+    min-width: 0;
+  }
+
+  .mobile-history-teams strong,
+  .mobile-history-teams small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-history-teams strong {
+    color: var(--ink);
+    font-size: 14px;
+  }
+
+  .mobile-history-teams small {
+    margin-top: 2px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .mobile-history-score {
+    color: var(--green-dark);
+    font-size: 15px;
+    font-weight: 800;
+  }
+
+  .mobile-history-item[open] .mobile-detail-indicator {
+    transform: rotate(225deg) translate(-2px, -2px);
+  }
+
+  .mobile-history-details {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+    margin: 0 0 8px 82px;
+    overflow: hidden;
+    border-radius: 10px;
+    background: var(--line);
+  }
+
+  .mobile-history-details > span {
+    min-width: 0;
+    padding: 10px;
+    background: rgba(248, 252, 250, 0.96);
+  }
+
+  .mobile-history-details > .wide {
+    grid-column: 1 / -1;
+  }
+
+  .mobile-history-details small,
+  .mobile-history-details strong {
+    display: block;
+  }
+
+  .mobile-history-details small {
+    margin-bottom: 3px;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .mobile-history-details strong {
+    overflow-wrap: anywhere;
+    color: var(--ink);
+    font-size: 13px;
+  }
+
+  .list-more-button {
+    width: 100%;
+    min-height: 46px;
   }
 
   .mobile-leaderboard-item {
