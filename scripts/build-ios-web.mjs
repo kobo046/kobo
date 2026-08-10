@@ -20,6 +20,7 @@ const files = [
   "events.js",
   "app.js",
   "manifest.webmanifest",
+  "assets/app-icon-1024.png",
   "assets/badminton-doubles-hero.webp"
 ];
 

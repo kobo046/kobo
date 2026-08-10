@@ -8,5 +8,13 @@
   "display": "standalone",
   "background_color": "#0d3128",
   "theme_color": "#16774f",
-  "lang": "zh-Hant"
+  "lang": "zh-Hant",
+  "icons": [
+    {
+      "src": "assets/app-icon-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }
