@@ -12,7 +12,7 @@ let lastSavedConfirmationDate = "";
 function setActionBusy(button, isBusy, busyLabel = "處理中…") {
   if (!button) return;
   if (isBusy) {
-    button.dataset.originalLabel = button.textContent;
+    if (!button.dataset.originalLabel) button.dataset.originalLabel = button.textContent;
     button.textContent = busyLabel;
     button.disabled = true;
     button.classList.add("is-busy");
@@ -20,6 +20,10 @@ function setActionBusy(button, isBusy, busyLabel = "處理中…") {
   }
   button.disabled = false;
   button.classList.remove("is-busy");
+  if (button.dataset.originalLabel) {
+    button.textContent = button.dataset.originalLabel;
+    delete button.dataset.originalLabel;
+  }
 }
 
 function canEditData() {
@@ -561,11 +565,48 @@ function handleExportClick(event) {
 async function handleUploadCloudClick(event) {
   if (event) event.preventDefault();
   if (!guardEditorAction("上傳雲端資料")) return false;
+  const button = event && event.currentTarget instanceof HTMLButtonElement ? event.currentTarget : null;
+  if (button && button.disabled) return false;
+  setActionBusy(button, true, "正在上傳…");
   try {
-    await uploadLocalStateToCloud();
+    const uploaded = await uploadLocalStateToCloud();
+    if (uploaded) showActionToast("本機資料已上傳並完成核對");
   } catch (error) {
     setStatus(`上傳雲端失敗：${error.message}`, true);
+    showActionToast("上傳失敗，本機資料仍然保留", "error");
     console.error(error);
+  } finally {
+    setActionBusy(button, false);
+  }
+  return false;
+}
+
+async function handleCloudSyncNowClick(event) {
+  if (event) event.preventDefault();
+  const button = event && event.currentTarget instanceof HTMLButtonElement ? event.currentTarget : null;
+  if (button && button.disabled) return false;
+  setActionBusy(button, true, "正在同步…");
+  try {
+    if (canEditData()) {
+      await uploadLocalStateToCloud();
+      setStatus("重新同步完成，本機與雲端資料已合併及核對。");
+      showActionToast("同步完成，雲端與本機已核對");
+    } else {
+      state = await loadState();
+      selectedPlayerId = state.players.length ? state.players[0].id : "";
+      renderAll();
+      setStatus("已重新讀取雲端資料；只讀模式不會上傳或修改資料。");
+      showActionToast("已重新讀取雲端，沒有修改任何資料");
+    }
+  } catch (error) {
+    if (typeof setCloudHealth === "function") {
+      setCloudHealth("error", "重新同步失敗", "資料仍保留在這部裝置。", error.message);
+    }
+    setStatus(`重新同步失敗：${error.message}`, true);
+    showActionToast("同步失敗，本機資料仍然保留", "error");
+    console.warn(error);
+  } finally {
+    setActionBusy(button, false);
   }
   return false;
 }
@@ -588,14 +629,22 @@ async function handleCloudCheckClick(event) {
     }
     const result = await window.cloudSync.testConnection();
     if (typeof setCloudHealth === "function") {
-      setCloudHealth("ok", "雲端讀取正常", `雲端有 ${result.players} 位選手、${result.matches} 場比賽。`, `連線方式：${result.transport}`);
+      setCloudHealth("ok", "雲端讀取正常", `雲端有 ${result.players} 位選手、${result.matches} 場比賽。`, `連線方式：${result.transport}`, {
+        cloudPlayers: result.players,
+        cloudMatches: result.matches,
+        pendingPlayers: 0,
+        pendingMatches: 0,
+        markSuccess: true
+      });
     }
     setStatus(`雲端讀取正常：${result.players} 位選手、${result.matches} 場比賽（${result.transport}）。`);
+    showActionToast(`連線正常：${result.players} 位選手、${result.matches} 場比賽`);
   } catch (error) {
     if (typeof setCloudHealth === "function") {
       setCloudHealth("error", "雲端連不到", "暫時請以本機資料或備份操作。", error.message);
     }
     setStatus(`雲端檢查失敗：${error.message}`, true);
+    showActionToast("雲端暫時連不到，現正使用本機資料", "warning");
     console.warn(error);
   } finally {
     if (button) {
@@ -610,16 +659,22 @@ async function handleCloudCheckClick(event) {
 async function handleRestoreAutomaticBackupClick(event) {
   if (event) event.preventDefault();
   if (!guardEditorAction("還原本機備份")) return false;
+  const button = event && event.currentTarget instanceof HTMLButtonElement ? event.currentTarget : null;
   const confirmed = window.confirm("會將這部裝置最完整的自動備份與現有資料合併，不會刪除雲端已有記錄。確定繼續？");
   if (!confirmed) return false;
-  const result = await restoreMostCompleteAutomaticBackup();
-  if (!result.ok) {
-    setStatus(result.message, true);
-    return false;
+  setActionBusy(button, true, "正在還原…");
+  try {
+    const result = await restoreMostCompleteAutomaticBackup();
+    if (!result.ok) {
+      setStatus(result.message, true);
+      return false;
+    }
+    selectedPlayerId = state.players.length ? state.players[0].id : "";
+    renderAll();
+    setStatus(`${result.message} 備份時間：${new Date(result.backup.createdAt).toLocaleString("zh-HK")}。`);
+  } finally {
+    setActionBusy(button, false);
   }
-  selectedPlayerId = state.players.length ? state.players[0].id : "";
-  renderAll();
-  setStatus(`${result.message} 備份時間：${new Date(result.backup.createdAt).toLocaleString("zh-HK")}。`);
   return false;
 }
 

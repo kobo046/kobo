@@ -523,7 +523,7 @@ body.editor-mode .auth-status {
 
 .cloud-health {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 360px) auto;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(420px, 1.3fr);
   align-items: center;
   gap: 18px;
   margin-top: 22px;
@@ -540,14 +540,19 @@ body.editor-mode .auth-status {
 
 .cloud-health-card {
   display: grid;
-  gap: 8px;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #f8fbf7;
+  gap: 12px;
+  padding: 4px 0 4px 22px;
+  border-left: 1px solid var(--line);
 }
 
-.cloud-health-card strong {
+.cloud-health-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.cloud-health-heading strong {
   color: var(--green-dark);
   font-size: 18px;
 }
@@ -580,6 +585,142 @@ body.editor-mode .auth-status {
 .cloud-local .cloud-badge {
   background: #eef1f3;
   color: var(--blue);
+}
+
+.cloud-sync-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 2px 0 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.cloud-sync-facts div {
+  min-width: 0;
+  padding: 10px 10px 10px 0;
+}
+
+.cloud-sync-facts dt {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.cloud-sync-facts dd {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.cloud-sync-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cloud-sync-actions button {
+  min-height: 44px;
+}
+
+.cloud-balance {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-left: 4px solid var(--blue);
+  background: #f1f6f8;
+}
+
+.cloud-balance span {
+  display: grid;
+  gap: 2px;
+}
+
+.cloud-balance small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.cloud-balance strong {
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.cloud-balance b {
+  color: var(--blue);
+  font-size: 22px;
+  text-align: center;
+}
+
+.cloud-balance em {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.cloud-balance-ok {
+  border-left-color: var(--green);
+  background: #eff8f2;
+}
+
+.cloud-balance-ok b,
+.cloud-balance-ok em {
+  color: var(--green-dark);
+}
+
+.cloud-balance-warning {
+  border-left-color: #d18b17;
+  background: #fff8e9;
+}
+
+.cloud-balance-error {
+  border-left-color: var(--rose);
+  background: #fff3f1;
+}
+
+.action-toast {
+  position: fixed;
+  right: max(18px, env(safe-area-inset-right));
+  bottom: max(24px, env(safe-area-inset-bottom));
+  z-index: 80;
+  display: flex;
+  max-width: min(420px, calc(100vw - 36px));
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  border: 1px solid rgba(17, 100, 65, 0.2);
+  border-radius: 8px;
+  background: #f0faf4;
+  box-shadow: 0 18px 50px rgba(15, 45, 34, 0.2);
+  color: var(--green-dark);
+}
+
+.action-toast > span {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--green-dark);
+  color: white;
+  font-weight: 800;
+}
+
+.action-toast-warning {
+  border-color: rgba(180, 115, 0, 0.24);
+  background: #fff8e9;
+  color: #7a5000;
+}
+
+.action-toast-error {
+  border-color: rgba(188, 61, 73, 0.24);
+  background: #fff3f1;
+  color: var(--rose);
 }
 
 .shortcut-actions {
@@ -1420,6 +1561,40 @@ footer {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     justify-content: stretch;
+  }
+
+  .cloud-health-card {
+    padding: 16px 0 0;
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
+  .cloud-sync-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cloud-sync-facts div:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .cloud-sync-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .cloud-balance {
+    grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr);
+  }
+
+  .cloud-balance em {
+    grid-column: 1 / -1;
+  }
+
+  .action-toast {
+    right: 12px;
+    bottom: calc(82px + env(safe-area-inset-bottom));
+    left: 12px;
+    max-width: none;
   }
 
   .mobile-dock {

@@ -19,6 +19,9 @@ function renderAll() {
   renderHistory();
   renderActivityLog();
   renderRuleCards();
+  if (typeof updateCloudFacts === "function" && typeof cloudConnectionState !== "undefined") {
+    updateCloudFacts(cloudConnectionState);
+  }
 }
 
 async function initializeApp() {

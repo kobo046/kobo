@@ -293,7 +293,13 @@ async function loadState() {
       cloudConnectionState = "ok";
       lastCloudMessage = "雲端已連接，但未有共享資料。";
       if (typeof setCloudHealth === "function") {
-        setCloudHealth("ok", "雲端已連接", "Supabase 可讀取，但目前未有共享資料。", "如這部機有舊分數，管理員可上傳本機資料到雲端。");
+        setCloudHealth("ok", "雲端已連接", "Supabase 可讀取，但目前未有共享資料。", "如這部機有舊分數，管理員可上傳本機資料到雲端。", {
+          cloudPlayers: 0,
+          cloudMatches: 0,
+          pendingPlayers: localState.players.length,
+          pendingMatches: localState.matches.length,
+          markSuccess: true
+        });
       }
       if (typeof isEditor === "function" && !isEditor()) {
         localStorage.setItem(storageKey, JSON.stringify(localState));
@@ -306,7 +312,13 @@ async function loadState() {
         await window.cloudSync.saveStateToCloud(bootstrapState);
         localStorage.setItem(storageKey, JSON.stringify(bootstrapState));
         if (typeof setCloudHealth === "function") {
-          setCloudHealth("ok", "雲端已建立共享資料", `${bootstrapState.players.length} 位選手，${bootstrapState.matches.length} 場比賽已上傳。`, "其他裝置重新整理後會同步。");
+          setCloudHealth("ok", "雲端已建立共享資料", `${bootstrapState.players.length} 位選手，${bootstrapState.matches.length} 場比賽已上傳。`, "其他裝置重新整理後會同步。", {
+            cloudPlayers: bootstrapState.players.length,
+            cloudMatches: bootstrapState.matches.length,
+            pendingPlayers: 0,
+            pendingMatches: 0,
+            markSuccess: true
+          });
         }
         setStatus("雲端未有資料，已把這部機的本機資料上傳做共享資料。");
         return bootstrapState;
@@ -338,7 +350,14 @@ async function loadState() {
       const mergeNote = localOnlyPlayers || localOnlyMatches
         ? `已保留本機額外 ${localOnlyPlayers} 位選手、${localOnlyMatches} 場比賽。`
         : `群組：${window.cloudSync.clubId()}（${window.cloudSync.transportLabel ? window.cloudSync.transportLabel() : "Supabase"}）`;
-      setCloudHealth("ok", "雲端已連接", `已安全合併 ${nextState.players.length} 位選手、${nextState.matches.length} 場比賽。`, mergeNote);
+      const editorMergedCloud = typeof isEditor === "function" && isEditor();
+      setCloudHealth("ok", "雲端已連接", `已安全合併 ${nextState.players.length} 位選手、${nextState.matches.length} 場比賽。`, mergeNote, {
+        cloudPlayers: editorMergedCloud ? nextState.players.length : cloudState.players.length,
+        cloudMatches: editorMergedCloud ? nextState.matches.length : cloudState.matches.length,
+        pendingPlayers: editorMergedCloud ? 0 : localOnlyPlayers,
+        pendingMatches: editorMergedCloud ? 0 : localOnlyMatches,
+        markSuccess: true
+      });
     }
     return nextState;
   } catch (error) {
@@ -386,7 +405,13 @@ async function saveState(options = {}) {
       cloudConnectionState = "ok";
       lastCloudMessage = `已同步 ${cloudPlayers} 位選手、${cloudMatches} 場比賽。`;
       if (typeof setCloudHealth === "function") {
-        setCloudHealth("ok", "雲端已同步", `已同步 ${cloudPlayers} 位選手、${cloudMatches} 場比賽。`, "其他裝置重新整理後會見到最新資料。");
+        setCloudHealth("ok", "雲端已同步", `已同步 ${cloudPlayers} 位選手、${cloudMatches} 場比賽。`, "其他裝置重新整理後會見到最新資料。", {
+          cloudPlayers,
+          cloudMatches,
+          pendingPlayers: 0,
+          pendingMatches: 0,
+          markSuccess: true
+        });
       }
       return {
         cloud: true,
@@ -466,7 +491,13 @@ async function uploadLocalStateToCloud() {
     cloudConnectionState = "ok";
     lastCloudMessage = `已上傳 ${cloudPlayers} 位選手、${cloudMatches} 場比賽。`;
     if (typeof setCloudHealth === "function") {
-      setCloudHealth("ok", "雲端已同步", lastCloudMessage, "其他裝置重新整理後會同步。");
+      setCloudHealth("ok", "雲端已同步", lastCloudMessage, "其他裝置重新整理後會同步。", {
+        cloudPlayers,
+        cloudMatches,
+        pendingPlayers: 0,
+        pendingMatches: 0,
+        markSuccess: true
+      });
     }
     setStatus(`已把本機資料上傳到雲端（${cloudPlayers} 位選手，${cloudMatches} 場比賽），其他裝置重新整理後會同步。`);
   } else {

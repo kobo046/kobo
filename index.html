@@ -13,10 +13,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=36" />
+    <link rel="stylesheet" href="styles.css?v=39" />
     <link rel="stylesheet" href="cartoon-court-v10.css?v=30" />
     <link rel="stylesheet" href="editorial-theme.css?v=30" />
     <link rel="stylesheet" href="ios-liquid-theme.css?v=36" />
+    <link rel="stylesheet" href="human-ui.css?v=1" />
   </head>
   <body class="viewer-mode">
     <header id="home" class="app-header">
@@ -30,12 +31,10 @@
         </a>
         <div class="nav-links">
           <a href="#leaderboard">排行榜</a>
-          <a href="#cloud">雲端</a>
           <a href="#days">比賽日</a>
-          <a href="#players">選手</a>
           <a class="editor-only" href="#match">新增比賽</a>
           <a href="#history">比賽歷史</a>
-          <a href="#analytics">計分規則</a>
+          <a href="#cloud">更多</a>
         </div>
       </nav>
 
@@ -86,20 +85,32 @@
       <section id="cloud" class="section cloud-health cloud-checking" aria-live="polite">
         <div>
           <p class="eyebrow">Cloud sync</p>
-          <h2>雲端狀態</h2>
+          <h2>同步控制中心</h2>
           <p id="cloudHealthDetail" class="hint">正在檢查 Supabase 連線。</p>
         </div>
         <div class="cloud-health-card">
-          <span id="cloudHealthBadge" class="cloud-badge">檢查中</span>
-          <strong id="cloudHealthTitle">正在連接雲端</strong>
+          <div class="cloud-health-heading">
+            <span id="cloudHealthBadge" class="cloud-badge">檢查中</span>
+            <strong id="cloudHealthTitle">正在連接雲端</strong>
+          </div>
           <p id="cloudHealthText">如果雲端暫時連不到，網站會先顯示本機資料。</p>
-        </div>
-        <div class="shortcut-actions">
-          <button class="mini-action" type="button" onclick="return handleCloudCheckClick(event)">重新檢查</button>
-          <a class="mini-action" href="#leaderboard">排行榜</a>
-          <a class="mini-action" href="#days">比賽日</a>
-          <a class="mini-action editor-only" href="#match">新增比賽</a>
-          <a class="mini-action" href="#history">比賽歷史</a>
+          <dl class="cloud-sync-facts">
+            <div><dt>資料來源</dt><dd id="cloudSourceValue">正在核對</dd></div>
+            <div><dt>最後同步</dt><dd id="cloudLastSyncValue">未有記錄</dd></div>
+            <div><dt>雲端記錄</dt><dd id="cloudRemoteValue">未檢查</dd></div>
+            <div><dt>本機記錄</dt><dd id="cloudLocalValue">正在讀取</dd></div>
+            <div><dt>同步狀態</dt><dd id="cloudPendingValue">檢查中</dd></div>
+          </dl>
+          <div id="cloudBalance" class="cloud-balance cloud-balance-checking">
+            <span><small>雲端</small><strong id="cloudBalanceRemote">核對中</strong></span>
+            <b id="cloudBalanceSymbol" aria-hidden="true">↔</b>
+            <span><small>本機</small><strong id="cloudBalanceLocal">核對中</strong></span>
+            <em id="cloudBalanceStatus">正在比較兩邊資料</em>
+          </div>
+          <div class="cloud-sync-actions">
+            <button id="cloudSyncNowButton" class="primary-action" type="button" onclick="return handleCloudSyncNowClick(event)">立即同步</button>
+            <button id="cloudCheckButton" class="secondary-action" type="button" onclick="return handleCloudCheckClick(event)">只檢查連線</button>
+          </div>
         </div>
       </section>
 
@@ -378,10 +389,10 @@
 
     <nav class="mobile-dock" aria-label="手機快速入口">
       <a href="#leaderboard">排行</a>
-      <a href="#cloud">雲端</a>
-      <a href="#days">日期</a>
+      <a class="viewer-only" href="#days">日期</a>
       <a class="editor-only" href="#match">新增</a>
-      <a href="#history">歷史</a>
+      <a href="#history">記錄</a>
+      <a href="#cloud">更多</a>
     </nav>
 
     <footer>
@@ -404,13 +415,18 @@
       </section>
     </div>
 
+    <div id="actionToast" class="action-toast hidden" role="status" aria-live="assertive">
+      <span id="actionToastIcon" aria-hidden="true">✓</span>
+      <strong id="actionToastText">操作完成</strong>
+    </div>
+
     <script src="supabase-config.js?v=32"></script>
     <script src="cloud-storage.js?v=33"></script>
     <script src="auth.js?v=32"></script>
     <script src="storage.js?v=33"></script>
     <script src="scoring.js?v=32"></script>
-    <script src="render.js?v=36"></script>
-    <script src="events.js?v=36"></script>
-    <script src="app.js?v=36"></script>
+    <script src="render.js?v=39"></script>
+    <script src="events.js?v=39"></script>
+    <script src="app.js?v=39"></script>
   </body>
 </html>

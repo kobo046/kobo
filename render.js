@@ -13,7 +13,105 @@ function setStatus(message, isError = false) {
   status.classList.toggle("error", isError);
 }
 
-function setCloudHealth(level, title, text = "", detail = "") {
+let actionToastTimer = null;
+
+function showActionToast(message, tone = "success") {
+  const toast = byId("actionToast");
+  const icon = byId("actionToastIcon");
+  const text = byId("actionToastText");
+  if (!toast || !icon || !text) return;
+  window.clearTimeout(actionToastTimer);
+  toast.className = `action-toast action-toast-${tone}`;
+  icon.textContent = tone === "error" ? "!" : tone === "warning" ? "i" : "✓";
+  text.textContent = message;
+  actionToastTimer = window.setTimeout(() => toast.classList.add("hidden"), 4200);
+}
+
+const cloudUiMetaKey = "badmintonPlayerRating.v2.cloudUiMeta";
+
+function readCloudUiMeta() {
+  try {
+    return JSON.parse(localStorage.getItem(cloudUiMetaKey) || "{}") || {};
+  } catch (_error) {
+    return {};
+  }
+}
+
+function updateCloudFacts(level, metrics = {}) {
+  const sourceNode = byId("cloudSourceValue");
+  const lastSyncNode = byId("cloudLastSyncValue");
+  const remoteNode = byId("cloudRemoteValue");
+  const localNode = byId("cloudLocalValue");
+  const pendingNode = byId("cloudPendingValue");
+  const balance = byId("cloudBalance");
+  const balanceRemote = byId("cloudBalanceRemote");
+  const balanceLocal = byId("cloudBalanceLocal");
+  const balanceSymbol = byId("cloudBalanceSymbol");
+  const balanceStatus = byId("cloudBalanceStatus");
+  if (!sourceNode || !lastSyncNode || !remoteNode || !localNode || !pendingNode) return;
+
+  const stored = readCloudUiMeta();
+  const next = { ...stored };
+  if (Number.isFinite(metrics.cloudPlayers)) next.cloudPlayers = metrics.cloudPlayers;
+  if (Number.isFinite(metrics.cloudMatches)) next.cloudMatches = metrics.cloudMatches;
+  if (Number.isFinite(metrics.pendingPlayers)) next.pendingPlayers = metrics.pendingPlayers;
+  if (Number.isFinite(metrics.pendingMatches)) next.pendingMatches = metrics.pendingMatches;
+  if (metrics.markSuccess) next.lastSuccessAt = new Date().toISOString();
+  if (metrics.markSuccess || Object.keys(metrics).length) {
+    localStorage.setItem(cloudUiMetaKey, JSON.stringify(next));
+  }
+
+  const localPlayers = typeof state !== "undefined" && Array.isArray(state.players) ? state.players.length : 0;
+  const localMatches = typeof state !== "undefined" && Array.isArray(state.matches) ? state.matches.length : 0;
+  const sources = {
+    ok: "雲端＋本機保護",
+    checking: "正在核對",
+    error: "本機暫存",
+    local: "只在本機"
+  };
+  sourceNode.textContent = sources[level] || sources.checking;
+  localNode.textContent = `${localPlayers} 位／${localMatches} 場`;
+  remoteNode.textContent = Number.isFinite(next.cloudPlayers) && Number.isFinite(next.cloudMatches)
+    ? `${next.cloudPlayers} 位／${next.cloudMatches} 場`
+    : "未檢查";
+  lastSyncNode.textContent = next.lastSuccessAt
+    ? new Date(next.lastSuccessAt).toLocaleString("zh-HK", { dateStyle: "short", timeStyle: "short" })
+    : "未有記錄";
+
+  const pendingPlayers = Number.isFinite(next.pendingPlayers) ? next.pendingPlayers : 0;
+  const pendingMatches = Number.isFinite(next.pendingMatches) ? next.pendingMatches : 0;
+  if (level === "error") pendingNode.textContent = "需要重新同步";
+  else if (level === "checking") pendingNode.textContent = "檢查中";
+  else if (level === "local") pendingNode.textContent = "未連接雲端";
+  else if (pendingPlayers || pendingMatches) pendingNode.textContent = `待確認 ${pendingPlayers} 位／${pendingMatches} 場`;
+  else pendingNode.textContent = "已完成";
+
+  if (balance && balanceRemote && balanceLocal && balanceSymbol && balanceStatus) {
+    const remoteKnown = Number.isFinite(next.cloudPlayers) && Number.isFinite(next.cloudMatches);
+    const sameCounts = remoteKnown && next.cloudPlayers === localPlayers && next.cloudMatches === localMatches;
+    balanceRemote.textContent = remoteKnown ? `${next.cloudPlayers} 位／${next.cloudMatches} 場` : "未檢查";
+    balanceLocal.textContent = `${localPlayers} 位／${localMatches} 場`;
+    if (level === "error") {
+      balance.className = "cloud-balance cloud-balance-error";
+      balanceSymbol.textContent = "!";
+      balanceStatus.textContent = "連線失敗，本機資料仍然保留";
+    } else if (sameCounts) {
+      balance.className = "cloud-balance cloud-balance-ok";
+      balanceSymbol.textContent = "=";
+      balanceStatus.textContent = "兩邊記錄數量一致";
+    } else if (remoteKnown) {
+      balance.className = "cloud-balance cloud-balance-warning";
+      balanceSymbol.textContent = "≠";
+      balanceStatus.textContent = "數量不同，請重新同步核對";
+    } else {
+      balance.className = "cloud-balance cloud-balance-checking";
+      balanceSymbol.textContent = "↔";
+      balanceStatus.textContent = "正在比較兩邊資料";
+    }
+  }
+}
+
+function setCloudHealth(level, title, text = "", detail = "", metrics = {}) {
   const panel = byId("cloud");
   const badge = byId("cloudHealthBadge");
   const titleNode = byId("cloudHealthTitle");
@@ -34,6 +132,7 @@ function setCloudHealth(level, title, text = "", detail = "") {
   titleNode.textContent = title;
   textNode.textContent = text;
   detailNode.textContent = detail;
+  updateCloudFacts(safeLevel, metrics);
 }
 
 function basePlayer(id) {

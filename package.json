@@ -5,6 +5,7 @@
   "description": "羽毛球個人積分排行榜 iOS app wrapper",
   "scripts": {
     "test": "node tests/scoring.test.mjs && node tests/storage.test.mjs && node tests/cloud-storage.test.mjs && node tests/events.test.mjs",
+    "validate": "npm test && node scripts/validate-release.mjs",
     "build:ios-web": "node scripts/build-ios-web.mjs",
     "cap:add:ios": "npm run build:ios-web && npx cap add ios",
     "cap:sync:ios": "npm run build:ios-web && npx cap sync ios",

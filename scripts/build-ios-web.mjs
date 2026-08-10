@@ -11,6 +11,7 @@ const files = [
   "cartoon-court-v10.css",
   "editorial-theme.css",
   "ios-liquid-theme.css",
+  "human-ui.css",
   "supabase-config.js",
   "auth.js",
   "cloud-storage.js",
