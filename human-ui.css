@@ -227,9 +227,16 @@ body.viewer-mode .viewer-only {
     line-height: 1.55;
   }
 
-  .hero-visual,
   .hero-actions {
     display: none;
+  }
+
+  .hero-visual {
+    display: block;
+    width: 100%;
+    max-width: none;
+    margin-top: 18px;
+    border-radius: 10px;
   }
 
   .stats-band {
