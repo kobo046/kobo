@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=39" />
+    <link rel="stylesheet" href="styles.css?v=40" />
     <link rel="stylesheet" href="cartoon-court-v10.css?v=30" />
     <link rel="stylesheet" href="editorial-theme.css?v=30" />
     <link rel="stylesheet" href="ios-liquid-theme.css?v=36" />
@@ -252,10 +252,14 @@
               <span>選手 2</span>
               <select id="teamAPlayer2"></select>
             </label>
-            <label>
-              <span>得分</span>
-              <input id="scoreA" type="number" min="0" max="99" value="21" />
-            </label>
+            <div class="score-field">
+              <label for="scoreA">得分</label>
+              <div class="score-stepper">
+                <button class="score-adjust" type="button" aria-label="A 隊減一分" onclick="return handleScoreAdjustClick(event, 'scoreA', -1)">−</button>
+                <input id="scoreA" type="number" min="0" max="99" value="21" inputmode="numeric" aria-label="A 隊得分" />
+                <button class="score-adjust" type="button" aria-label="A 隊加一分" onclick="return handleScoreAdjustClick(event, 'scoreA', 1)">+</button>
+              </div>
+            </div>
           </div>
           <div class="versus">VS</div>
           <div class="team-input flexible-team">
@@ -268,10 +272,14 @@
               <span>選手 2</span>
               <select id="teamBPlayer2"></select>
             </label>
-            <label>
-              <span>得分</span>
-              <input id="scoreB" type="number" min="0" max="99" value="17" />
-            </label>
+            <div class="score-field">
+              <label for="scoreB">得分</label>
+              <div class="score-stepper">
+                <button class="score-adjust" type="button" aria-label="B 隊減一分" onclick="return handleScoreAdjustClick(event, 'scoreB', -1)">−</button>
+                <input id="scoreB" type="number" min="0" max="99" value="17" inputmode="numeric" aria-label="B 隊得分" />
+                <button class="score-adjust" type="button" aria-label="B 隊加一分" onclick="return handleScoreAdjustClick(event, 'scoreB', 1)">+</button>
+              </div>
+            </div>
           </div>
           <div class="team-input match-meta">
             <h3>比賽資料</h3>
@@ -289,9 +297,9 @@
             </label>
           </div>
           <div class="quick-actions editor-only">
-            <button class="secondary-action" type="button" onclick="return handleUseLastMatchClick(event)">套用上一場選手</button>
-            <button class="secondary-action" type="button" onclick="return handleSwapTeamsClick(event)">交換 A / B 隊</button>
-            <button class="secondary-action" type="button" onclick="return handleResetScoresClick(event)">重設分數 21:17</button>
+            <button class="secondary-action" type="button" aria-label="套用上一場選手" title="套用上一場選手" onclick="return handleUseLastMatchClick(event)">上一場</button>
+            <button class="secondary-action" type="button" aria-label="交換 A 隊和 B 隊" title="交換 A / B 隊" onclick="return handleSwapTeamsClick(event)">交換隊伍</button>
+            <button class="secondary-action" type="button" aria-label="重設分數為 21 比 17" title="重設分數 21:17" onclick="return handleResetScoresClick(event)">重設 21:17</button>
           </div>
           <div class="form-actions">
             <button class="secondary-action" id="previewButton" type="button" onclick="return handlePreviewClick(event)">試算變動</button>
@@ -426,7 +434,7 @@
     <script src="storage.js?v=33"></script>
     <script src="scoring.js?v=32"></script>
     <script src="render.js?v=39"></script>
-    <script src="events.js?v=39"></script>
+    <script src="events.js?v=40"></script>
     <script src="app.js?v=39"></script>
   </body>
 </html>

@@ -476,6 +476,17 @@ function resetScores() {
   setStatus("已重設分數為 21:17。");
 }
 
+function adjustScore(targetId, delta) {
+  if (!guardEditorAction("調整比分")) return;
+  const input = byId(targetId);
+  if (!input || !["scoreA", "scoreB"].includes(targetId)) return;
+  const minimum = Number(input.min || 0);
+  const maximum = Number(input.max || 99);
+  const current = Number(input.value || 0);
+  input.value = Math.min(maximum, Math.max(minimum, current + delta));
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
 async function handleAddPlayerClick(event) {
   try {
     await addPlayer(event);
@@ -713,6 +724,12 @@ function handleResetScoresClick(event) {
   return false;
 }
 
+function handleScoreAdjustClick(event, targetId, delta) {
+  if (event) event.preventDefault();
+  adjustScore(targetId, Number(delta));
+  return false;
+}
+
 function handleClearActivityLogClick(event) {
   if (event) event.preventDefault();
   if (!guardEditorAction("清除操作紀錄")) return false;
@@ -756,6 +773,7 @@ window.handleOpenDayClick = handleOpenDayClick;
 window.handleUseLastMatchClick = handleUseLastMatchClick;
 window.handleSwapTeamsClick = handleSwapTeamsClick;
 window.handleResetScoresClick = handleResetScoresClick;
+window.handleScoreAdjustClick = handleScoreAdjustClick;
 window.handleClearActivityLogClick = handleClearActivityLogClick;
 window.handleSaveConfirmCloseClick = handleSaveConfirmCloseClick;
 window.handleSaveConfirmHistoryClick = handleSaveConfirmHistoryClick;
