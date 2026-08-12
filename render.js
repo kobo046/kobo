@@ -156,6 +156,10 @@ function canRenderEditorActions() {
   return typeof isEditor === "function" && isEditor();
 }
 
+function playerHasMatchHistory(playerId) {
+  return state.matches.some((match) => [...match.teamAIds, ...match.teamBIds].includes(playerId));
+}
+
 function matchDates() {
   return [...new Set(state.matches.map((match) => match.date).filter(Boolean))].sort().reverse();
 }
@@ -308,7 +312,7 @@ function renderLeaderboard() {
                   canEdit
                     ? `<div class="mobile-player-actions">
                         <button class="mini-action" type="button" onclick="return handleRenamePlayerClick(event, '${player.id}')">改名</button>
-                        <button class="mini-danger" type="button" onclick="return handleDeletePlayerClick(event, '${player.id}')">刪除</button>
+                        ${!playerHasMatchHistory(player.id) ? `<button class="mini-danger" type="button" onclick="return handleDeletePlayerClick(event, '${player.id}')">刪除</button>` : ""}
                       </div>`
                     : ""
                 }
@@ -337,7 +341,7 @@ function renderLeaderboard() {
               <td>${player.recent}</td>
               <td>${canEdit ? `<div class="action-cell">
                 <button class="mini-action" type="button" onclick="return handleRenamePlayerClick(event, '${player.id}')">改名</button>
-                <button class="mini-danger" type="button" onclick="return handleDeletePlayerClick(event, '${player.id}')">刪除</button>
+                ${!playerHasMatchHistory(player.id) ? `<button class="mini-danger" type="button" onclick="return handleDeletePlayerClick(event, '${player.id}')">刪除</button>` : ""}
               </div>` : ""}</td>
             </tr>
           `;
@@ -359,7 +363,7 @@ function renderPlayers() {
         <span class="meta">得失分：${player.pointsFor}:${player.pointsAgainst}</span>
         ${canEdit ? `<span class="card-actions">
           <button class="mini-action" type="button" onclick="return handleRenamePlayerClick(event, '${player.id}')">改名</button>
-          <button class="mini-danger" type="button" onclick="return handleDeletePlayerClick(event, '${player.id}')">刪除</button>
+          ${!playerHasMatchHistory(player.id) ? `<button class="mini-danger" type="button" onclick="return handleDeletePlayerClick(event, '${player.id}')">刪除</button>` : ""}
         </span>` : ""}
       </article>
     `

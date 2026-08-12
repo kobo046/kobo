@@ -6,6 +6,7 @@ function createContext(promptValue) {
   const saveCalls = [];
   const statuses = [];
   const activities = [];
+  const confirms = [];
   const context = {
     console,
     state: {
@@ -24,6 +25,10 @@ function createContext(promptValue) {
     prompt() {
       return promptValue;
     },
+    confirm(message) {
+      confirms.push(message);
+      return true;
+    },
     async saveState(options) {
       saveCalls.push(options);
       return { cloud: true };
@@ -41,6 +46,7 @@ function createContext(promptValue) {
   context.saveCalls = saveCalls;
   context.statuses = statuses;
   context.activities = activities;
+  context.confirms = confirms;
   vm.createContext(context);
   vm.runInContext(fs.readFileSync("events.js", "utf8"), context, { filename: "events.js" });
   return context;
@@ -70,6 +76,28 @@ const tests = [
       assert.equal(context.state.players[0].name, "Kobo");
       assert.equal(context.saveCalls.length, 0);
       assert.equal(context.statuses.at(-1).isError, true);
+    }
+  ],
+  [
+    "deleting a player with match history is blocked and keeps every match",
+    async () => {
+      const context = createContext(null);
+      context.state.matches = [
+        {
+          id: "m1",
+          teamAIds: ["p1", "p3"],
+          teamBIds: ["p2", "p4"],
+          scoreA: 21,
+          scoreB: 17
+        }
+      ];
+      await vm.runInContext('deletePlayer("p1")', context);
+
+      assert.equal(context.state.players.some((player) => player.id === "p1"), true);
+      assert.equal(context.state.matches.length, 1);
+      assert.equal(context.saveCalls.length, 0);
+      assert.equal(context.confirms.length, 0);
+      assert.match(context.statuses.at(-1).message, /不能刪除/);
     }
   ]
 ];

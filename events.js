@@ -273,22 +273,22 @@ async function deletePlayer(playerId) {
   const player = basePlayer(playerId);
   if (!player) return;
   const relatedMatches = state.matches.filter((match) => [...match.teamAIds, ...match.teamBIds].includes(playerId)).length;
-  const relatedMatchIds = state.matches
-    .filter((match) => [...match.teamAIds, ...match.teamBIds].includes(playerId))
-    .map((match) => match.id);
-  const confirmed = window.confirm(`確定刪除選手「${player.name}」？會同時刪除 ${relatedMatches} 場包含此選手的比賽紀錄。`);
+  if (relatedMatches > 0) {
+    setStatus(`不能刪除「${player.name}」：這位選手有 ${relatedMatches} 場歷史比賽。請到比賽歷史編輯或刪除個別一場。`, true);
+    return;
+  }
+  const confirmed = window.confirm(`確定刪除未有比賽紀錄的選手「${player.name}」？`);
   if (!confirmed) return;
   state.players = state.players.filter((item) => item.id !== playerId);
-  state.matches = state.matches.filter((match) => ![...match.teamAIds, ...match.teamBIds].includes(playerId));
   if (selectedPlayerId === playerId) selectedPlayerId = state.players.length ? state.players[0].id : "";
   await saveState({
     changedPlayerIds: [],
     changedMatchIds: [],
     deletedPlayerIds: [playerId],
-    deletedMatchIds: relatedMatchIds,
+    deletedMatchIds: [],
     backupReason: "刪除選手前"
   });
-  if (typeof recordActivity === "function") recordActivity("刪除選手", `${player.name}，連同 ${relatedMatches} 場比賽`);
+  if (typeof recordActivity === "function") recordActivity("刪除未出賽選手", player.name);
   renderAll();
   setStatus(`已刪除選手：${player.name}`);
 }
@@ -319,7 +319,9 @@ async function deleteMatch(matchId) {
   if (!guardEditorAction("刪除比賽")) return;
   const match = state.matches.find((item) => item.id === matchId);
   if (!match) return;
-  const confirmed = window.confirm(`確定刪除 ${match.date} 的比賽紀錄 ${teamLabel(match.teamAIds)} ${match.scoreA}:${match.scoreB} ${teamLabel(match.teamBIds)}？`);
+  const confirmed = window.confirm(
+    `只刪除以下一場比賽？\n\n${match.date}\n${teamLabel(match.teamAIds)} ${match.scoreA}:${match.scoreB} ${teamLabel(match.teamBIds)}\n\n其他比賽和選手不會刪除。`
+  );
   if (!confirmed) return;
   state.matches = state.matches.filter((item) => item.id !== matchId);
   if (editingMatchId === matchId) clearMatchEditingUi();
