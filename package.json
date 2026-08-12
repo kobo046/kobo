@@ -9,7 +9,8 @@
     "build:ios-web": "node scripts/build-ios-web.mjs",
     "cap:add:ios": "npm run build:ios-web && npx cap add ios",
     "cap:sync:ios": "npm run build:ios-web && npx cap sync ios",
-    "cap:open:ios": "npx cap open ios"
+    "cap:open:ios": "npx cap open ios",
+    "ios:prepare:mac": "bash scripts/prepare-ios-mac.sh"
   },
   "dependencies": {
     "@capacitor/core": "^7.4.4",

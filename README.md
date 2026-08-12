@@ -39,6 +39,16 @@ http://127.0.0.1:8787/
 npm test
 ```
 
+## iOS App
+
+專案已包含 Capacitor iOS 專案、App icon 和啟動畫面。把 repo 下載到 Mac 後，可以用一條指令檢查環境、同步最新網站內容並打開 Xcode：
+
+```bash
+bash scripts/prepare-ios-mac.sh
+```
+
+實機安裝、Apple ID 簽署、資料同步及 TestFlight 步驟見 [IOS_APP_GUIDE.md](IOS_APP_GUIDE.md)。
+
 ## GitHub Pages 部署
 
 此專案是純靜態網站，`index.html` 內所有 CSS、JS、manifest 都使用相對路徑，例如：
