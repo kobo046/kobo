@@ -51,6 +51,24 @@ function recomputeWith(context, state) {
   return vm.runInContext("recompute()", context);
 }
 
+function seasonWith(context, state, referenceDate) {
+  context.state = state;
+  context.matchSummaries = [];
+  context.referenceDate = referenceDate;
+  return vm.runInContext("seasonRankingPlayers(referenceDate)", context);
+}
+
+function datedMatch(id, date, scoreA = 21, scoreB = 17) {
+  return {
+    id,
+    date,
+    teamAIds: ["a1", "a2"],
+    teamBIds: ["b1", "b2"],
+    scoreA,
+    scoreB
+  };
+}
+
 function byId(players, id) {
   return players.find((player) => player.id === id);
 }
@@ -140,6 +158,109 @@ const tests = [
 
       assert.notEqual(byId(original, "a1").rating, byId(afterEdit, "a1").rating);
       assert.deepEqual(afterEdit, recomputedEditReference);
+    }
+  ],
+  [
+    "season ranking awards 100, 84, 69, 54 and 35 points by daily position",
+    () => {
+      const context = createContext();
+      const points = [1, 2, 3, 4, 5, 8, 9, 16].map((position) => {
+        context.position = position;
+        return vm.runInContext("rankingPointsForPosition(position)", context);
+      });
+
+      assert.deepEqual(points, [100, 84, 69, 69, 54, 54, 35, 35]);
+    }
+  ],
+  [
+    "season ranking counts only the best ten match days",
+    () => {
+      const context = createContext();
+      const matches = Array.from({ length: 12 }, (_, index) =>
+        datedMatch(`m${index + 1}`, `2026-07-${String(index + 1).padStart(2, "0")}`)
+      );
+      const players = seasonWith(context, makeBaseState(matches), "2026-08-13");
+      const player = byId(players, "a1");
+
+      assert.equal(player.rankingDays, 12);
+      assert.equal(player.countedRankingDays, 10);
+      assert.equal(player.rankingPoints, 1000);
+      assert.equal(player.rating, 10);
+    }
+  ],
+  [
+    "season ranking excludes results older than 52 weeks",
+    () => {
+      const context = createContext();
+      const matches = [
+        datedMatch("old", "2025-08-13"),
+        datedMatch("inside", "2025-08-14")
+      ];
+      const players = seasonWith(context, makeBaseState(matches), "2026-08-13");
+      const player = byId(players, "a1");
+
+      assert.equal(player.rankingDays, 1);
+      assert.equal(player.rankingPoints, 100);
+      assert.equal(player.rating, 5.5);
+    }
+  ],
+  [
+    "season ranking remains provisional until three match days",
+    () => {
+      const context = createContext();
+      const twoDays = seasonWith(
+        context,
+        makeBaseState([datedMatch("m1", "2026-08-01"), datedMatch("m2", "2026-08-02")]),
+        "2026-08-13"
+      );
+      const threeDays = seasonWith(
+        context,
+        makeBaseState([
+          datedMatch("m1", "2026-08-01"),
+          datedMatch("m2", "2026-08-02"),
+          datedMatch("m3", "2026-08-03")
+        ]),
+        "2026-08-13"
+      );
+
+      assert.equal(byId(twoDays, "a1").provisional, true);
+      assert.equal(byId(threeDays, "a1").provisional, false);
+    }
+  ],
+  [
+    "players tied on a match day receive the same ranking points",
+    () => {
+      const context = createContext();
+      context.state = makeBaseState([datedMatch("m1", "2026-08-01")]);
+      const results = vm.runInContext("rankedDayResults(state.matches)", context);
+      const a1 = results.find((result) => result.id === "a1");
+      const a2 = results.find((result) => result.id === "a2");
+
+      assert.equal(a1.position, 1);
+      assert.equal(a2.position, 1);
+      assert.equal(a1.points, 100);
+      assert.equal(a2.points, 100);
+    }
+  ],
+  [
+    "season ranking recalculates after an old match is edited or deleted",
+    () => {
+      const context = createContext();
+      const state = makeBaseState([
+        datedMatch("m1", "2026-08-01"),
+        datedMatch("m2", "2026-08-02", 17, 21)
+      ]);
+      const before = seasonWith(context, state, "2026-08-13");
+
+      state.matches[1] = datedMatch("m2", "2026-08-02", 21, 17);
+      const afterEdit = seasonWith(context, state, "2026-08-13");
+
+      state.matches.splice(1, 1);
+      const afterDelete = seasonWith(context, state, "2026-08-13");
+
+      assert.equal(byId(before, "a1").rankingPoints, 169);
+      assert.equal(byId(afterEdit, "a1").rankingPoints, 200);
+      assert.equal(byId(afterDelete, "a1").rankingPoints, 100);
     }
   ],
   [

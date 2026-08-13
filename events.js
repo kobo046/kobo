@@ -150,7 +150,7 @@ function renderPreview() {
     return null;
   }
 
-  const previewPlayers = computedPlayers();
+  const previewPlayers = performancePlayers();
   const result = calculateMatchChange(match.teamAIds, match.teamBIds, match.scoreA, match.scoreB, previewPlayers);
   const winners = result.actualA === 1 ? match.teamAIds : match.teamBIds;
   const rows = [...match.teamAIds, ...match.teamBIds]

@@ -10,6 +10,12 @@ const maxSingleMatchChange = 1.35;
 
 const scoreDiffWeight = 0.035;
 
+const rankingWindowDays = 52 * 7;
+
+const rankingBestDayLimit = 10;
+
+const officialRankingDayMinimum = 3;
+
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
@@ -110,8 +116,102 @@ function recompute() {
   return players;
 }
 
-function computedPlayers() {
+function rankingPointsForPosition(position) {
+  if (position === 1) return 100;
+  if (position === 2) return 84;
+  if (position <= 4) return 69;
+  if (position <= 8) return 54;
+  return 35;
+}
+
+function rankingReferenceTime(referenceDate) {
+  if (typeof referenceDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(referenceDate)) {
+    return Date.parse(`${referenceDate}T00:00:00Z`);
+  }
+  const date = referenceDate instanceof Date ? referenceDate : new Date();
+  return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function playersForMatches(matches) {
+  let players = state.players.map(createStats);
+  matches.forEach((match) => {
+    players = applyMatch(players, match).players;
+  });
+  return players
+    .filter((player) => player.wins + player.losses > 0)
+    .sort((a, b) => b.rating - a.rating);
+}
+
+function playersForDate(date) {
+  if (!date) return [];
+  return playersForMatches(state.matches.filter((match) => match.date === date));
+}
+
+function rankedDayResults(matches) {
+  const players = playersForMatches(matches);
+  let previousRating = null;
+  let previousPosition = 0;
+
+  return players.map((player, index) => {
+    const tiedWithPrevious = previousRating !== null && Math.abs(player.rating - previousRating) < 0.000001;
+    const position = tiedWithPrevious ? previousPosition : index + 1;
+    previousRating = player.rating;
+    previousPosition = position;
+    return {
+      id: player.id,
+      position,
+      points: rankingPointsForPosition(position),
+      dailyRating: player.rating
+    };
+  });
+}
+
+function seasonRankingPlayers(referenceDate) {
+  const performancePlayers = recompute();
+  const referenceTime = rankingReferenceTime(referenceDate);
+  const cutoffTime = referenceTime - rankingWindowDays * 24 * 60 * 60 * 1000;
+  const matchesByDate = new Map();
+
+  state.matches.forEach((match) => {
+    const matchTime = Date.parse(`${match.date}T00:00:00Z`);
+    if (!Number.isFinite(matchTime) || matchTime < cutoffTime || matchTime > referenceTime) return;
+    if (!matchesByDate.has(match.date)) matchesByDate.set(match.date, []);
+    matchesByDate.get(match.date).push(match);
+  });
+
+  const resultsByPlayer = new Map(state.players.map((player) => [player.id, []]));
+  matchesByDate.forEach((matches, date) => {
+    rankedDayResults(matches).forEach((result) => {
+      resultsByPlayer.get(result.id)?.push({ ...result, date });
+    });
+  });
+
+  return performancePlayers.map((player) => {
+    const rankingResults = resultsByPlayer.get(player.id) || [];
+    const bestResults = [...rankingResults]
+      .sort((a, b) => b.points - a.points || b.dailyRating - a.dailyRating || b.date.localeCompare(a.date))
+      .slice(0, rankingBestDayLimit);
+    const rankingPoints = bestResults.reduce((sum, result) => sum + result.points, 0);
+    return {
+      ...player,
+      performanceRating: player.rating,
+      rating: clamp(initialRating + rankingPoints / 200, initialRating, maxRating),
+      rankingPoints,
+      rankingDays: rankingResults.length,
+      countedRankingDays: bestResults.length,
+      rankingFirsts: rankingResults.filter((result) => result.position === 1).length,
+      provisional: rankingResults.length < officialRankingDayMinimum,
+      rankingResults
+    };
+  });
+}
+
+function performancePlayers() {
   return recompute();
+}
+
+function computedPlayers() {
+  return seasonRankingPlayers();
 }
 
 function winRate(player) {

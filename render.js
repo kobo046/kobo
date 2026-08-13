@@ -169,17 +169,6 @@ function ensureSelectedDate(currentDate, dates) {
   return currentDate && dates.includes(currentDate) ? currentDate : dates[0];
 }
 
-function playersForDate(date) {
-  if (!date) return [];
-  let players = state.players.map(createStats);
-  state.matches
-    .filter((match) => match.date === date)
-    .forEach((match) => {
-      players = applyMatch(players, match).players;
-    });
-  return players.filter((player) => player.wins + player.losses > 0);
-}
-
 function leaderboardPlayers() {
   if (leaderboardMode !== "day") return computedPlayers();
 
@@ -194,11 +183,20 @@ function sortedPlayers() {
   return leaderboardPlayers()
     .filter((player) => player.name.toLowerCase().includes(query))
     .sort((a, b) => {
+      if (leaderboardMode === "all" && a.provisional !== b.provisional) return a.provisional ? 1 : -1;
       if (sort === "winRate") return winRate(b) - winRate(a);
       if (sort === "matches") return b.wins + b.losses - (a.wins + a.losses);
       if (sort === "recent") return new Date(b.recent || 0) - new Date(a.recent || 0);
+      if (leaderboardMode === "all") {
+        return b.rankingPoints - a.rankingPoints || b.rankingFirsts - a.rankingFirsts || b.rankingDays - a.rankingDays;
+      }
       return b.rating - a.rating;
     });
+}
+
+function totalRankingMeta(player) {
+  if (leaderboardMode !== "all") return "";
+  return `${player.rankingPoints} 積分 · ${player.rankingDays} 日${player.provisional ? " · 暫定" : ""}`;
 }
 
 function renderLeaderboardControls(rows) {
@@ -220,8 +218,8 @@ function renderLeaderboardControls(rows) {
 
   byId("leaderboardSummary").innerHTML = `
     <article>
-      <span>${leaderboardMode === "day" ? selectedLeaderboardDate || "未有日期" : "總分數"}</span>
-      <p>${leaderboardMode === "day" ? "單日排名" : "全部比賽"}</p>
+      <span>${leaderboardMode === "day" ? selectedLeaderboardDate || "未有日期" : "最近 52 星期"}</span>
+      <p>${leaderboardMode === "day" ? "單日排名" : "最佳 10 個比賽日"}</p>
     </article>
     <article>
       <span>${playedPlayers.length}</span>
@@ -297,12 +295,13 @@ function renderLeaderboard() {
                   <span class="rank">${index + 1}</span>
                   <span class="mobile-player-name">
                     <strong>${player.name}</strong>
-                    <small>${player.gender}</small>
+                    <small>${player.gender}${leaderboardMode === "all" && player.provisional ? " · 暫定" : ""}</small>
                   </span>
                   <span class="score-pill">${formatScore(player.rating)}</span>
                   <span class="mobile-detail-indicator" aria-hidden="true"></span>
                 </summary>
                 <div class="mobile-player-details">
+                  ${leaderboardMode === "all" ? `<span><small>排名積分</small><strong>${player.rankingPoints}</strong></span><span><small>有效日數</small><strong>${player.rankingDays} 日</strong></span>` : ""}
                   <span><small>勝率</small><strong>${winRate(player)}%</strong></span>
                   <span><small>戰績</small><strong>${player.wins} 勝 ${player.losses} 敗</strong></span>
                   <span><small>得失分</small><strong>${player.pointsFor}:${player.pointsAgainst} (${pointDiff >= 0 ? "+" : ""}${pointDiff})</strong></span>
@@ -334,7 +333,7 @@ function renderLeaderboard() {
                 <div class="team-name">${player.name}</div>
                 <div class="members">${player.gender}</div>
               </td>
-              <td><span class="score-pill">${formatScore(player.rating)}</span></td>
+              <td><span class="score-pill">${formatScore(player.rating)}</span>${leaderboardMode === "all" ? `<div class="members">${totalRankingMeta(player)}</div>` : ""}</td>
               <td>${winRate(player)}%</td>
               <td>${player.wins} 勝 ${player.losses} 敗 <span class="meta">/ ${played} 場</span></td>
               <td>${player.pointsFor}:${player.pointsAgainst} <span class="meta">(${pointDiff >= 0 ? "+" : ""}${pointDiff})</span></td>
@@ -359,7 +358,8 @@ function renderPlayers() {
       <article class="player-card ${player.id === selectedPlayerId ? "active" : ""}" data-player="${player.id}" role="button" tabindex="0">
         <span class="avatar">${player.name.slice(0, 1)}</span>
         <strong>${player.name}</strong>
-        <span class="meta">${player.gender} · ${formatScore(player.rating)} 分 · ${player.wins + player.losses} 場</span>
+        <span class="meta">${player.gender} · ${formatScore(player.rating)} 分 · ${player.rankingPoints} 積分</span>
+        <span class="meta">${player.rankingDays} 個比賽日${player.provisional ? " · 暫定排名" : ""}</span>
         <span class="meta">得失分：${player.pointsFor}:${player.pointsAgainst}</span>
         ${canEdit ? `<span class="card-actions">
           <button class="mini-action" type="button" onclick="return handleRenamePlayerClick(event, '${player.id}')">改名</button>
@@ -396,7 +396,9 @@ function renderPlayerDetail() {
     <span class="avatar">${player.name.slice(0, 1)}</span>
     <h3>${player.name}</h3>
     <p class="meta">${player.gender}</p>
-    <div class="partner-row"><strong>目前分數</strong><span class="score-pill">${formatScore(player.rating)}</span></div>
+    <div class="partner-row"><strong>總榜分數</strong><span class="score-pill">${formatScore(player.rating)}</span></div>
+    <div class="partner-row"><strong>排名積分</strong><span>${player.rankingPoints}</span></div>
+    <div class="partner-row"><strong>有效比賽日</strong><span>${player.rankingDays} 日${player.provisional ? "（暫定）" : ""}</span></div>
     <div class="partner-row"><strong>勝率</strong><span>${winRate(player)}%</span></div>
     <div class="partner-row"><strong>戰績</strong><span>${player.wins} 勝 ${player.losses} 敗</span></div>
     <div class="partner-row"><strong>得失分</strong><span>${player.pointsFor}:${player.pointsAgainst}</span></div>
@@ -643,26 +645,26 @@ function renderActivityLog() {
 function renderRuleCards() {
     byId("ruleCards").innerHTML = `
       <article class="team-card">
-        <h3>基本分</h3>
-        <p class="meta">每位新選手由 5.00 分開始，最低 0 分，最高 10 分。</p>
+        <h3>總排名</h3>
+        <p class="meta">每個比賽日視為 100 分賽事，按當日名次取得 100、84、69、54 或 35 積分。</p>
         <div class="bar"><span style="width: 50%"></span></div>
-        <strong>新手起點：5.00 / 10</strong>
+        <strong>最近 52 星期最佳 10 日</strong>
       </article>
       <article class="team-card">
-        <h3>得失分修正</h3>
-        <p class="meta">每 1 分得失分約影響 0.035 分，所以長期 156:140 會比 153:149 更有優勢。</p>
+        <h3>顯示分數</h3>
+        <p class="meta">總榜由 5.00 分開始，每 200 排名積分增加 1 分，最高為 10.00 分。</p>
         <div class="bar"><span style="width: 78%"></span></div>
-        <strong>分差會直接影響個人分數</strong>
+        <strong>不足 3 個比賽日顯示暫定</strong>
       </article>
       <article class="team-card">
-        <h3>爆冷修正</h3>
-        <p class="meta">高分隊輸給低分隊會扣更多；低分隊打贏高分隊會加更多。</p>
+        <h3>單日排名</h3>
+        <p class="meta">單日沿用原有類 Elo 計法，按勝負、比分差距及對手強弱計算。</p>
         <div class="bar"><span style="width: 86%"></span></div>
-        <strong>用類 Elo 預期勝率計算</strong>
+        <strong>高分隊爆冷落敗會有較大變動</strong>
       </article>
       <article class="team-card">
         <h3>歷史重算</h3>
-        <p class="meta">編輯或刪除舊比賽後，系統會由第一場開始重新計算所有人的分數。</p>
+        <p class="meta">編輯或刪除舊比賽後，單日及總排名都會由全部有效紀錄重新計算。</p>
         <div class="bar"><span style="width: 64%"></span></div>
         <strong>修正錯誤更可靠</strong>
       </article>
