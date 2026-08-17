@@ -1,0 +1,70 @@
+name: Publish Project Profile
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/project-profile.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update repository profile
+        run: |
+          gh api --method PATCH "repos/${GITHUB_REPOSITORY}" \
+            -f description='Mobile-first doubles badminton match tracker with fair individual rankings, Supabase sync, and iOS support.' \
+            -f homepage='https://kobo046.github.io/kobo/'
+
+          gh api --method PUT "repos/${GITHUB_REPOSITORY}/topics" \
+            -H 'Accept: application/vnd.github+json' \
+            -f 'names[]=badminton' \
+            -f 'names[]=ranking' \
+            -f 'names[]=elo-rating' \
+            -f 'names[]=supabase' \
+            -f 'names[]=capacitor' \
+            -f 'names[]=ios' \
+            -f 'names[]=local-first' \
+            -f 'names[]=sports'
+
+      - name: Publish v1.0.0 release
+        run: |
+          cat > "$RUNNER_TEMP/release-notes.md" <<'EOF'
+          First public release of Badminton Player Rating.
+
+          Highlights:
+          - Mobile-first doubles match entry and individual player management
+          - Elo-inspired match-day ranking
+          - Rolling 52-week total ranking using the best 10 match days
+          - Supabase multi-device synchronization with merge recovery and tombstones
+          - JSON backups and automatic local snapshots
+          - GitHub Pages deployment and Capacitor iOS packaging
+          - Automated scoring, storage, synchronization, and event tests
+
+          See CHANGELOG.md for details.
+          EOF
+
+          if gh release view v1.0.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release edit v1.0.0 --repo "$GITHUB_REPOSITORY" \
+              --title 'Badminton Player Rating v1.0.0' \
+              --notes-file "$RUNNER_TEMP/release-notes.md" \
+              --latest
+          else
+            gh release create v1.0.0 --repo "$GITHUB_REPOSITORY" \
+              --verify-tag \
+              --title 'Badminton Player Rating v1.0.0' \
+              --notes-file "$RUNNER_TEMP/release-notes.md" \
+              --latest
+          fi
