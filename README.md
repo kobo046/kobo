@@ -1,119 +1,139 @@
-# 羽毛球個人積分排行榜
+# Badminton Player Rating
 
-## 資料安全
+[![CI](https://github.com/kobo046/kobo/actions/workflows/ci.yml/badge.svg)](https://github.com/kobo046/kobo/actions/workflows/ci.yml)
+[![GitHub Pages](https://github.com/kobo046/kobo/actions/workflows/pages.yml/badge.svg)](https://github.com/kobo046/kobo/actions/workflows/pages.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-- 重新連接 Supabase 時，本機與雲端會按選手及比賽 ID 合併，不會再用雲端整份覆蓋手機資料。
-- 網站會在連接雲端、儲存、刪除及接收遠端更新前，自動保留最多 12 個本機快照。
-- 雲端記錄只會在管理員明確按下刪除時標記為刪除；一般同步不會因另一部裝置資料較舊而刪走記錄。
-- 管理員可在「備份 / 還原」按「還原最完整本機備份」，安全地把舊資料合併回目前記錄。
-- 自動快照仍只存在該部裝置；重要比賽日後建議再按「匯出備份」下載 JSON 檔。
+A mobile-first doubles badminton match tracker and individual player ranking system. It runs as a static web app, synchronizes shared club data through Supabase, and can be packaged as a native iOS app with Capacitor.
 
-一個手機友善的羽毛球雙打即場記分與個人積分排行榜網站。預設會使用瀏覽器的 `localStorage`，填入 Supabase 設定後可升級成多人共用同一份資料。
+**[Live demo](https://kobo046.github.io/kobo/)** · **[繁體中文說明](README.zh-HK.md)** · **[iOS guide](IOS_APP_GUIDE.md)**
 
-## 本機打開
+![Badminton doubles match](assets/badminton-doubles-hero.webp)
 
-最簡單做法：
+## Why this project exists
 
-1. 直接用瀏覽器打開 `index.html`。
-2. 或在專案資料夾開一個靜態伺服器：
+Most casual badminton groups rotate partners frequently, so a fixed-team table does not describe individual performance well. This project records every doubles match as four individual participants and rebuilds each player's statistics from the complete match history.
+
+It is designed for real use at the court:
+
+- large, touch-friendly match entry controls;
+- individual ratings despite changing partners;
+- total and match-day leaderboards;
+- shared multi-device records with offline-safe local snapshots;
+- editable historical matches with deterministic full recomputation;
+- the same code and data model on the web and iOS.
+
+The reference deployment currently supports 16 active players and 64 recorded matches across six match days. See [Project Impact](docs/PROJECT_IMPACT.md) for privacy-safe usage evidence and current limitations.
+
+## Ranking model
+
+The application intentionally separates two questions:
+
+| View | Purpose | Calculation |
+| --- | --- | --- |
+| Match-day ranking | Who performed best on a specific day? | Elo-inspired updates using match result, score margin, and upset probability |
+| Rolling total ranking | Who has sustained performance over time? | Best 10 match-day results from the latest 52 weeks, using 100/84/69/54/35 placement points |
+
+The public display maps rolling points to a 5.00–10.00 scale. Players with fewer than three match days are marked provisional. The scoring implementation is isolated in [`scoring.js`](scoring.js), documented with [worked formulas](docs/SCORING.md), and covered by executable tests.
+
+## Features
+
+- Player creation, rename, and protected deletion
+- Match date, venue, notes, teams, and scores
+- Total and per-day leaderboards
+- Search, sorting, player profiles, match-day summaries, and history
+- Edit/delete with full ranking recomputation
+- JSON import/export and automatic local recovery snapshots
+- Supabase merge-based synchronization with tombstones
+- Viewer and administrator interface modes
+- GitHub Pages deployment and Capacitor iOS packaging
+- Automated scoring, storage, cloud-sync, and event tests
+
+## Architecture
+
+This is deliberately a small, framework-free application. The browser loads modules in dependency order:
+
+```text
+index.html
+  ├─ storage.js       local state, normalization, backup/import/export
+  ├─ scoring.js       match changes, day ranking, rolling ranking
+  ├─ render.js        leaderboard, players, history, rule views
+  ├─ events.js        forms, buttons, edits, and deletes
+  ├─ cloud-storage.js Supabase REST adapter and merge synchronization
+  ├─ auth.js          viewer/editor UI gate
+  └─ app.js           initialization
+```
+
+See [Architecture](docs/ARCHITECTURE.md) for data flow, conflict handling, and important design decisions.
+
+## Quick start
+
+Requirements: Node.js 20 or newer.
+
+```bash
+git clone https://github.com/kobo046/kobo.git
+cd kobo
+npm ci
+npm test
+```
+
+Start a local static server:
 
 ```bash
 npx serve .
 ```
 
-也可以用 Python：
+Then open the URL printed by `serve`. Python's `python -m http.server 8787` also works.
 
-```bash
-python -m http.server 8787
-```
+## Supabase setup
 
-然後打開：
+The app works locally without Supabase. Shared multi-device data requires a Supabase project and the schema in [`supabase-schema.sql`](supabase-schema.sql).
 
-```text
-http://127.0.0.1:8787/
-```
+1. Create a Supabase project.
+2. Run the schema in the Supabase SQL editor.
+3. Copy [`supabase-config.example.js`](supabase-config.example.js) to `supabase-config.js`.
+4. Enter the project URL, publishable key, and a club ID.
+5. Run `npm run validate` before deployment.
 
-## 測試
+Detailed instructions and the current security model are documented in [Supabase setup](SUPABASE_SETUP.md).
 
-```bash
-npm test
-```
+> The publishable Supabase key is expected to be public. Never commit a secret key or `service_role` key. The current passcode mode is a convenience UI gate, not database-level authorization; production deployments should use Supabase Auth and restrictive RLS. See [Security](SECURITY.md).
 
-## iOS App
+## iOS
 
-專案已包含 Capacitor iOS 專案、App icon 和啟動畫面。把 repo 下載到 Mac 後，可以用一條指令檢查環境、同步最新網站內容並打開 Xcode：
+The repository includes a Capacitor iOS project. On a Mac with Xcode, Node.js 20+, and CocoaPods:
 
 ```bash
 bash scripts/prepare-ios-mac.sh
 ```
 
-實機安裝、Apple ID 簽署、資料同步及 TestFlight 步驟見 [IOS_APP_GUIDE.md](IOS_APP_GUIDE.md)。
+The script validates the project, rebuilds the web bundle, synchronizes it into Xcode, and opens the workspace. See [iOS App Guide](IOS_APP_GUIDE.md).
 
-## GitHub Pages 部署
+## Testing and validation
 
-此專案是純靜態網站，`index.html` 內所有 CSS、JS、manifest 都使用相對路徑，例如：
-
-- `styles.css?v=34`
-- `cartoon-court-v10.css?v=30`
-- `editorial-theme.css?v=30`
-- `ios-liquid-theme.css?v=33`
-- `cloud-storage.js?v=33`
-- `storage.js?v=33`
-- `scoring.js?v=32`
-- `render.js?v=34`
-- `events.js?v=34`
-- `auth.js?v=32`
-- `app.js?v=32`
-- `manifest.webmanifest`
-
-所以部署到 GitHub Pages 的子路徑，例如 `/kobo/`，可以正常運作。
-
-## Supabase 多人同步
-
-網站已包含 Supabase 同步 adapter：
-
-- `supabase-config.js`
-- `cloud-storage.js`
-- `supabase-schema.sql`
-- `supabase-simple-passcode.sql`
-
-未填 Supabase 設定前，網站會顯示本機模式。設定好 Supabase 後，同一個 `clubId` 的所有裝置會共用同一份選手、比賽和排行榜資料。
-
-目前版本支援簡易只讀 / 管理員模式：一般訪客可查看資料，輸入管理員密碼後才會顯示新增、修改和刪除功能。這是前端方便鎖，不是高安全資料庫權限；如要真正防止技術使用者寫入，仍需要 Supabase Auth / RLS。
-
-近期改善包括比賽日總覽、管理員模式收合、快速套用上一場選手、交換 A/B 隊、重設分數、本機操作紀錄、editorial theme 視覺更新、雲端狀態提示、手機快速入口和儲存比賽確認彈窗。
-
-詳細步驟見 `SUPABASE_SETUP.md`。
-
-### 使用 GitHub Actions
-
-本 repo 已包含 `.github/workflows/pages.yml`。設定方法：
-
-1. 到 GitHub repo：`Settings`。
-2. 左邊選 `Pages`。
-3. `Build and deployment` 的 `Source` 選 `GitHub Actions`。
-4. 之後每次 push 到 `main` 都會自動部署。
-
-### 使用分支部署
-
-如果不用 GitHub Actions，也可以：
-
-1. 到 GitHub repo：`Settings`。
-2. 左邊選 `Pages`。
-3. `Build and deployment` 的 `Source` 選 `Deploy from a branch`。
-4. Branch 選 `main`，folder 選 `/ (root)`。
-5. 儲存後等待 GitHub Pages 建置。
-
-## 部署網址格式
-
-如果 repository 是 `kobo046/kobo`，成功部署後網址通常是：
-
-```text
-https://kobo046.github.io/kobo/
+```bash
+npm test            # scoring, storage, cloud sync, and events
+npm run validate    # tests plus release and credential checks
+npm run audit       # fail on high/critical dependency advisories
+npm run build:ios-web
 ```
 
-## PWA / 離線使用
+CI runs on every pull request and push to `main`. GitHub Pages deploys only after the validation job succeeds.
 
-目前已有 `manifest.webmanifest`，足夠讓手機瀏覽器辨識網站名稱、顏色、啟動畫面模式。
+## Contributing
 
-暫時不建議立即加入 service worker，原因是現在資料存在 `localStorage`，而網站仍在快速修改中。太早加入離線快取，手機可能會一直載入舊版 JS/CSS。建議等 Supabase 多人同步版本穩定後，再加入 service worker，並設計清楚的快取更新策略。
+Bug reports, scoring discussions, translations, accessibility improvements, and deployment feedback from badminton groups are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md) before opening a pull request.
+
+## Roadmap
+
+- Supabase Auth with editor/admin roles and restrictive RLS
+- Club onboarding without editing source files
+- Installable PWA with explicit cache-version handling
+- More ranking simulations and fairness reports
+- TestFlight distribution and iOS release automation
+
+See the full [roadmap](ROADMAP.md).
+
+## License
+
+Released under the [MIT License](LICENSE).

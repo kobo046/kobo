@@ -2,9 +2,30 @@
   "name": "badminton-rating-app",
   "version": "1.0.0",
   "private": true,
-  "description": "羽毛球個人積分排行榜 iOS app wrapper",
+  "description": "Mobile-first doubles badminton match tracker and individual player ranking system",
+  "license": "MIT",
+  "homepage": "https://kobo046.github.io/kobo/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kobo046/kobo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kobo046/kobo/issues"
+  },
+  "keywords": [
+    "badminton",
+    "ranking",
+    "elo",
+    "supabase",
+    "capacitor",
+    "ios"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "test": "node tests/scoring.test.mjs && node tests/storage.test.mjs && node tests/cloud-storage.test.mjs && node tests/events.test.mjs",
+    "audit": "npm audit --audit-level=high",
     "validate": "npm test && node scripts/validate-release.mjs",
     "build:ios-web": "node scripts/build-ios-web.mjs",
     "cap:add:ios": "npm run build:ios-web && npx cap add ios",

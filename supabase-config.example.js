@@ -1,0 +1,5 @@
+window.BADMINTON_SUPABASE_CONFIG = {
+  url: "https://YOUR_PROJECT_REF.supabase.co",
+  anonKey: "YOUR_PUBLISHABLE_KEY",
+  clubId: "default"
+};

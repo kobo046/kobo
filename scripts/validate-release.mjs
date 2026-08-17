@@ -25,10 +25,42 @@ const requiredFiles = [
   "events.js",
   "app.js",
   "capacitor.config.json",
-  "assets/app-icon-1024.png"
+  "assets/app-icon-1024.png",
+  "README.md",
+  "README.zh-HK.md",
+  "LICENSE",
+  "CONTRIBUTING.md",
+  "SECURITY.md",
+  "docs/ARCHITECTURE.md",
+  "docs/SCORING.md",
+  "docs/PROJECT_IMPACT.md"
 ];
 
 await Promise.all(requiredFiles.map(requireFile));
+
+const markdownFiles = [
+  "README.md",
+  "README.zh-HK.md",
+  "CONTRIBUTING.md",
+  "SECURITY.md",
+  "ROADMAP.md",
+  "docs/ARCHITECTURE.md",
+  "docs/SCORING.md",
+  "docs/PROJECT_IMPACT.md"
+];
+
+for (const path of markdownFiles) {
+  const content = await readFile(join(root, path), "utf8");
+  const linkPattern = /\[[^\]]*\]\((?!https?:\/\/|mailto:|#)([^)#]+)(?:#[^)]+)?\)/g;
+  for (const match of content.matchAll(linkPattern)) {
+    const target = match[1];
+    try {
+      await access(join(root, dirname(path), target));
+    } catch (_error) {
+      failures.push(`Markdown 連結目標不存在：${path} -> ${target}`);
+    }
+  }
+}
 
 try {
   const manifest = JSON.parse(await readFile(join(root, "manifest.webmanifest"), "utf8"));

@@ -1,0 +1,39 @@
+name: Feature request
+description: Suggest a focused improvement
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: User need
+      description: What court-side or maintenance problem should this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Explain the smallest useful version of the change.
+    validations:
+      required: true
+  - type: textarea
+    id: scoring
+    attributes:
+      label: Ranking impact
+      description: If this affects scoring, include a concrete match example and expected result.
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Main area
+      options:
+        - Match entry
+        - Ranking and fairness
+        - Player or match history
+        - Backup and recovery
+        - Supabase and permissions
+        - iOS packaging
+        - Accessibility or translation
+    validations:
+      required: true
