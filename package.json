@@ -34,7 +34,7 @@
     "ios:prepare:mac": "bash scripts/prepare-ios-mac.sh"
   },
   "dependencies": {
-    "@capacitor/core": "^7.4.4",
+    "@capacitor/core": "^8.5.0",
     "@capacitor/ios": "^7.4.4"
   },
   "devDependencies": {
