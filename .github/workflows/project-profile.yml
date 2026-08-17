@@ -1,4 +1,4 @@
-name: Publish Project Profile
+name: Publish Release
 
 on:
   push:
@@ -21,23 +21,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Update repository profile
-        run: |
-          gh api --method PATCH "repos/${GITHUB_REPOSITORY}" \
-            -f description='Mobile-first doubles badminton match tracker with fair individual rankings, Supabase sync, and iOS support.' \
-            -f homepage='https://kobo046.github.io/kobo/'
-
-          gh api --method PUT "repos/${GITHUB_REPOSITORY}/topics" \
-            -H 'Accept: application/vnd.github+json' \
-            -f 'names[]=badminton' \
-            -f 'names[]=ranking' \
-            -f 'names[]=elo-rating' \
-            -f 'names[]=supabase' \
-            -f 'names[]=capacitor' \
-            -f 'names[]=ios' \
-            -f 'names[]=local-first' \
-            -f 'names[]=sports'
 
       - name: Publish v1.0.0 release
         run: |
