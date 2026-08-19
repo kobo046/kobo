@@ -32,9 +32,9 @@ The application intentionally separates two questions:
 | View | Purpose | Calculation |
 | --- | --- | --- |
 | Match-day ranking | Who performed best on a specific day? | Elo-inspired updates using match result, score margin, and upset probability |
-| Rolling total ranking | Who has sustained performance over time? | Best 10 match-day results from the latest 52 weeks, using 100/84/69/54/35 placement points |
+| Rolling skill ranking | Who is currently strongest? | Confidence-aware individual ratings rebuilt from every match in the latest 52 weeks |
 
-The public display maps rolling points to a 5.00–10.00 scale. Players with fewer than three match days are marked provisional. The scoring implementation is isolated in [`scoring.js`](scoring.js), documented with [worked formulas](docs/SCORING.md), and covered by executable tests.
+The total leaderboard displays the rolling individual skill estimate directly. Ratings remain provisional until they include at least 10 matches, 3 match days, and 5 distinct opponents. These confidence thresholds do not add rating points. The scoring implementation is isolated in [`scoring.js`](scoring.js), documented with [worked formulas](docs/SCORING.md), and covered by executable tests.
 
 ## Features
 

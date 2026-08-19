@@ -187,16 +187,13 @@ function sortedPlayers() {
       if (sort === "winRate") return winRate(b) - winRate(a);
       if (sort === "matches") return b.wins + b.losses - (a.wins + a.losses);
       if (sort === "recent") return new Date(b.recent || 0) - new Date(a.recent || 0);
-      if (leaderboardMode === "all") {
-        return b.rankingPoints - a.rankingPoints || b.rankingFirsts - a.rankingFirsts || b.rankingDays - a.rankingDays;
-      }
       return b.rating - a.rating;
     });
 }
 
 function totalRankingMeta(player) {
   if (leaderboardMode !== "all") return "";
-  return `${player.rankingPoints} 積分 · ${player.rankingDays} 日${player.provisional ? " · 暫定" : ""}`;
+  return `${player.ratingMatches} 場 · ${player.ratingDays} 日 · ${player.ratingOpponents} 位對手${player.provisional ? " · 暫定" : ""}`;
 }
 
 function renderLeaderboardControls(rows) {
@@ -219,7 +216,7 @@ function renderLeaderboardControls(rows) {
   byId("leaderboardSummary").innerHTML = `
     <article>
       <span>${leaderboardMode === "day" ? selectedLeaderboardDate || "未有日期" : "最近 52 星期"}</span>
-      <p>${leaderboardMode === "day" ? "單日排名" : "最佳 10 個比賽日"}</p>
+      <p>${leaderboardMode === "day" ? "單日排名" : "持續實力評分"}</p>
     </article>
     <article>
       <span>${playedPlayers.length}</span>
@@ -301,7 +298,7 @@ function renderLeaderboard() {
                   <span class="mobile-detail-indicator" aria-hidden="true"></span>
                 </summary>
                 <div class="mobile-player-details">
-                  ${leaderboardMode === "all" ? `<span><small>排名積分</small><strong>${player.rankingPoints}</strong></span><span><small>有效日數</small><strong>${player.rankingDays} 日</strong></span>` : ""}
+                  ${leaderboardMode === "all" ? `<span><small>評分場數</small><strong>${player.ratingMatches} 場</strong></span><span><small>比賽日數</small><strong>${player.ratingDays} 日</strong></span><span><small>不同對手</small><strong>${player.ratingOpponents} 位</strong></span>` : ""}
                   <span><small>勝率</small><strong>${winRate(player)}%</strong></span>
                   <span><small>戰績</small><strong>${player.wins} 勝 ${player.losses} 敗</strong></span>
                   <span><small>得失分</small><strong>${player.pointsFor}:${player.pointsAgainst} (${pointDiff >= 0 ? "+" : ""}${pointDiff})</strong></span>
@@ -358,8 +355,8 @@ function renderPlayers() {
       <article class="player-card ${player.id === selectedPlayerId ? "active" : ""}" data-player="${player.id}" role="button" tabindex="0">
         <span class="avatar">${player.name.slice(0, 1)}</span>
         <strong>${player.name}</strong>
-        <span class="meta">${player.gender} · ${formatScore(player.rating)} 分 · ${player.rankingPoints} 積分</span>
-        <span class="meta">${player.rankingDays} 個比賽日${player.provisional ? " · 暫定排名" : ""}</span>
+        <span class="meta">${player.gender} · ${formatScore(player.rating)} 實力分</span>
+        <span class="meta">${player.ratingMatches} 場 · ${player.ratingDays} 日 · ${player.ratingOpponents} 位對手${player.provisional ? " · 暫定排名" : ""}</span>
         <span class="meta">得失分：${player.pointsFor}:${player.pointsAgainst}</span>
         ${canEdit ? `<span class="card-actions">
           <button class="mini-action" type="button" onclick="return handleRenamePlayerClick(event, '${player.id}')">改名</button>
@@ -397,8 +394,8 @@ function renderPlayerDetail() {
     <h3>${player.name}</h3>
     <p class="meta">${player.gender}</p>
     <div class="partner-row"><strong>總榜分數</strong><span class="score-pill">${formatScore(player.rating)}</span></div>
-    <div class="partner-row"><strong>排名積分</strong><span>${player.rankingPoints}</span></div>
-    <div class="partner-row"><strong>有效比賽日</strong><span>${player.rankingDays} 日${player.provisional ? "（暫定）" : ""}</span></div>
+    <div class="partner-row"><strong>評分樣本</strong><span>${player.ratingMatches} 場／${player.ratingDays} 日</span></div>
+    <div class="partner-row"><strong>不同對手</strong><span>${player.ratingOpponents} 位${player.provisional ? "（暫定）" : ""}</span></div>
     <div class="partner-row"><strong>勝率</strong><span>${winRate(player)}%</span></div>
     <div class="partner-row"><strong>戰績</strong><span>${player.wins} 勝 ${player.losses} 敗</span></div>
     <div class="partner-row"><strong>得失分</strong><span>${player.pointsFor}:${player.pointsAgainst}</span></div>
@@ -646,21 +643,21 @@ function renderRuleCards() {
     byId("ruleCards").innerHTML = `
       <article class="team-card">
         <h3>總排名</h3>
-        <p class="meta">每個比賽日視為 100 分賽事，按當日名次取得 100、84、69、54 或 35 積分。</p>
+        <p class="meta">總榜只按最近 52 星期逐場賽果、對手強弱及比分差距估計個人實力，不會因出席次數自動加分。</p>
         <div class="bar"><span style="width: 50%"></span></div>
-        <strong>最近 52 星期最佳 10 日</strong>
+        <strong>持續個人實力評分</strong>
       </article>
       <article class="team-card">
-        <h3>顯示分數</h3>
-        <p class="meta">總榜由 5.00 分開始，每 200 排名積分增加 1 分，最高為 10.00 分。</p>
+        <h3>評分可信度</h3>
+        <p class="meta">完成至少 10 場、3 個比賽日並遇過 5 位不同對手後，排名先由暫定轉為正式。</p>
         <div class="bar"><span style="width: 78%"></span></div>
-        <strong>不足 3 個比賽日顯示暫定</strong>
+        <strong>樣本門檻不會額外加分</strong>
       </article>
       <article class="team-card">
-        <h3>單日排名</h3>
-        <p class="meta">單日沿用原有類 Elo 計法，按勝負、比分差距及對手強弱計算。</p>
+        <h3>同隊分數變動</h3>
+        <p class="meta">同隊兩人共享同一賽果訊號；紀錄較少者變動較快，紀錄成熟者較穩定，避免猜測誰貢獻較多。</p>
         <div class="bar"><span style="width: 86%"></span></div>
-        <strong>高分隊爆冷落敗會有較大變動</strong>
+        <strong>按個人評分可信度調整</strong>
       </article>
       <article class="team-card">
         <h3>歷史重算</h3>

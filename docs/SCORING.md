@@ -1,58 +1,73 @@
 # Scoring Model
 
-The project uses separate calculations for match-day performance and long-term participation. This avoids letting one unusually strong day permanently dominate the overall leaderboard while keeping each day's results sensitive to opponent strength and score margin.
+The project keeps match-day performance separate from the rolling skill ranking. The match-day view answers who performed best on one date. The total leaderboard estimates who is currently strongest and does not award points merely for attending more often.
 
-## Match-day performance
+## Match evidence
 
-Every player begins a match day at 5.00. Matches are applied in recorded order.
-
-For team A:
+Team strength is the average current rating of both players. For team A:
 
 ```text
 expectedA = 1 / (1 + 10 ^ ((teamBRating - teamARating) / 4))
 marginRatio = min(abs(scoreA - scoreB) / winningScore, 0.75)
-rawChangeA = 0.85 × (1 + marginRatio) × (actualA - expectedA)
-             + (scoreA - scoreB) × 0.035
-changeA = clamp(rawChangeA, -1.35, +1.35)
-changeB = -changeA
+marginMultiplier = 1 + marginRatio
+teamChangeA = clamp((actualA - expectedA) × marginMultiplier, -1.35, +1.35)
+teamChangeB = -teamChangeA
 ```
-
-Both members of a team receive the same change. Individual ratings are clamped to 0.00–10.00.
 
 This means:
 
-- a win increases the winning team and decreases the losing team;
-- a larger score margin creates a larger change;
-- a higher-rated team loses more for an upset;
-- no player moves by more than 1.35 in one match.
+- beating a stronger team is worth more than beating a weaker team;
+- losing to a weaker team costs more than losing to a stronger team;
+- a clearer score margin strengthens the evidence without being counted twice;
+- no individual moves by more than 1.35 in one match.
 
-## Daily placement points
+## Teammate updates
 
-After all matches for a date are applied, participating players are sorted by their match-day rating. Exact rating ties share the same position and points.
+A doubles score contains team evidence, not individual performance data. The model therefore does not guess which teammate carried the team. Both players receive the same directional result signal, with an adaptive learning multiplier based on how established each rating is:
 
-| Daily position | Ranking points |
+| Previous rated matches | Multiplier |
 | --- | ---: |
-| 1 | 100 |
-| 2 | 84 |
-| 3–4 | 69 |
-| 5–8 | 54 |
-| 9+ | 35 |
+| 0–4 | 1.20 |
+| 5–9 | 1.10 |
+| 10–19 | 1.00 |
+| 20–39 | 0.90 |
+| 40+ | 0.80 |
 
-## Rolling total ranking
+A newer player's estimate moves faster in either direction because it is less certain. An experienced player's estimate is more stable. When teammates have equal experience, they still receive equal changes because the match contains no fair basis for separating their contributions.
 
-For each player:
+For an evenly rated 21:17 match, the shared team signal is approximately `+0.60`. A new player with fewer than five previous matches moves approximately `+0.71`, while a teammate with at least 20 previous matches moves approximately `+0.54`. If both have the same experience, both move by the same amount.
 
-1. Keep match days within the latest 52 weeks.
-2. Sort results by points, then daily rating, then date.
-3. Count the best 10 match days.
-4. Sum their ranking points.
-5. Display `5 + rankingPoints / 200`, clamped to 10.00.
+## Match-day ranking
 
-A player needs three match days for an official ranking. Earlier results are visible but marked provisional and sorted after official players.
+Every participating player begins each date at 5.00. Only matches from that date are applied, in their recorded order. This view measures that day's performance and includes only players who played on that date.
+
+## Rolling skill ranking
+
+The total leaderboard:
+
+1. keeps matches from the latest 52 weeks;
+2. orders them chronologically;
+3. starts every player at 5.00;
+4. applies every match using opponent strength, result, score margin, and rating confidence;
+5. ranks official players by their resulting individual rating.
+
+Playing another match does not award attendance points. A player gains only by performing better than the model expected and can lose rating when performing worse than expected.
+
+A rating is provisional until the player has all of the following within the window:
+
+- at least 10 matches;
+- at least 3 match days;
+- at least 5 distinct opponents.
+
+These thresholds affect confidence status only. They do not add rating points. Provisional players remain visible but are sorted after official players by default.
 
 ## Deterministic recomputation
 
-Ratings are never treated as authoritative stored values. Editing, deleting, importing, or synchronizing a match causes all derived statistics to be rebuilt from match history. Tests cover the formula, caps, upset behavior, time window, best-10 selection, ties, and historical recomputation.
+Ratings are derived data rather than authoritative stored values. Editing, deleting, importing, or synchronizing a match rebuilds all ratings from match history. Matches are sorted by date and stable match ID before calculation so the web and iOS builds produce the same result even when cloud records arrive in a different order.
+
+## Limits of score-only ranking
+
+No score-only doubles system can identify who made the winning shots, committed errors, or carried a partnership. Fair individual separation emerges over time when partners and opponents rotate. Adding unequal teammate rewards without rally-level or player-level evidence would introduce an unsupported assumption.
 
 ## Changing the model
 

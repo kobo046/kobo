@@ -4,10 +4,17 @@ All notable changes are documented here. The project follows semantic versioning
 
 ## [Unreleased]
 
+### Changed
+
+- Replaced attendance-based best-10 placement points with a rolling 52-week individual skill rating
+- Added confidence-aware teammate updates so less-established ratings adapt faster without guessing individual contribution
+- Added official-rating thresholds for match sample, match-day coverage, and opponent diversity
+- Made rolling recomputation chronological when older matches are added later
+
 ### Planned
 
 - Supabase Auth and restrictive RLS for editor/admin roles
-- Additional ranking fairness simulations
+- Additional ranking fairness simulations and calibration reports
 - PWA cache update strategy
 
 ## [1.0.0] - 2026-08-17

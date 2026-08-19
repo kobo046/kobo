@@ -13,7 +13,7 @@ Only aggregate counts are published. Player names, match exports, and device inf
 
 ## Problem addressed
 
-Recreational doubles groups frequently rotate partners. Fixed-team tables and simple win percentages can reward a player for one favorable partnership or a small number of matches. This project keeps stable player identities across changing teams, considers opponent strength and score margin for each day, and uses a rolling best-result model for longer-term ranking.
+Recreational doubles groups frequently rotate partners. Fixed-team tables, simple win percentages, and attendance points can reward one favorable partnership, a small sample, or frequency rather than skill. This project keeps stable player identities across changing teams and rebuilds a rolling 52-week individual skill estimate from opponent strength, result, score margin, and rating confidence.
 
 ## Maintenance evidence
 

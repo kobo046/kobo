@@ -14,7 +14,7 @@ The roadmap favors reliability for real badminton groups over feature count.
 
 - Publish worked examples for match-day and rolling ranking calculations.
 - Add simulation fixtures for participation frequency and strength of schedule.
-- Show which match days count toward each player's best 10.
+- Publish rating calibration and confidence reports as the dataset grows.
 - Collect feedback from additional badminton groups.
 
 ## Priority 3: resilient installation

@@ -45,7 +45,7 @@ A remote absence is never interpreted as deletion. Explicit cloud tombstones pre
 
 ## Ranking flow
 
-The match-day model starts all participating players at 5.00 for that date and applies every match in order. The rolling model converts each day's final placement to event points and totals the best 10 results in a 52-week window. The user-facing 5.00–10.00 score is a display mapping of those rolling points.
+The match-day model starts all participating players at 5.00 for that date and applies every match in order. The rolling model rebuilds individual skill ratings from every valid match in the latest 52 weeks. Attendance does not award points; match count, day count, and opponent diversity are used only to decide whether a rating is still provisional.
 
 ## iOS packaging
 

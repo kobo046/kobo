@@ -4,17 +4,17 @@ const initialRating = 5;
 
 const maxRating = 10;
 
-const baseK = 0.85;
+const baseK = 1;
 
 const maxSingleMatchChange = 1.35;
 
-const scoreDiffWeight = 0.035;
-
 const rankingWindowDays = 52 * 7;
 
-const rankingBestDayLimit = 10;
+const officialRatingMatchMinimum = 10;
 
-const officialRankingDayMinimum = 3;
+const officialRatingDayMinimum = 3;
+
+const officialRatingOpponentMinimum = 5;
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -52,8 +52,9 @@ function calculateMatchChange(teamAIds, teamBIds, scoreA, scoreB, players) {
   const winnerScore = Math.max(scoreA, scoreB, 1);
   const marginRatio = Math.min(pointDiff / winnerScore, 0.75);
   const marginMultiplier = 1 + marginRatio;
-  const scoreDiffA = (scoreA - scoreB) * scoreDiffWeight;
-  const rawChangeA = baseK * marginMultiplier * (actualA - expectedA) + scoreDiffA;
+  const outcomeChangeA = baseK * (actualA - expectedA);
+  const scoreDiffA = outcomeChangeA * (marginMultiplier - 1);
+  const rawChangeA = outcomeChangeA + scoreDiffA;
   const changeA = clamp(rawChangeA, -maxSingleMatchChange, maxSingleMatchChange);
 
   return {
@@ -66,6 +67,15 @@ function calculateMatchChange(teamAIds, teamBIds, scoreA, scoreB, players) {
   };
 }
 
+function ratingLearningMultiplier(player) {
+  const played = Number(player.wins || 0) + Number(player.losses || 0);
+  if (played < 5) return 1.2;
+  if (played < 10) return 1.1;
+  if (played < 20) return 1;
+  if (played < 40) return 0.9;
+  return 0.8;
+}
+
 function applyMatch(players, match) {
   const result = calculateMatchChange(match.teamAIds, match.teamBIds, match.scoreA, match.scoreB, players);
   const aWins = match.scoreA > match.scoreB;
@@ -76,7 +86,12 @@ function applyMatch(players, match) {
     const isB = match.teamBIds.includes(player.id);
     if (!isA && !isB) return player;
 
-    const change = isA ? result.changeA : result.changeB;
+    const teamChange = isA ? result.changeA : result.changeB;
+    const change = clamp(
+      teamChange * ratingLearningMultiplier(player),
+      -maxSingleMatchChange,
+      maxSingleMatchChange
+    );
     const pointsFor = isA ? match.scoreA : match.scoreB;
     const pointsAgainst = isA ? match.scoreB : match.scoreA;
     const won = isA ? aWins : !aWins;
@@ -100,7 +115,7 @@ function recompute() {
   let players = state.players.map(createStats);
   const summaries = [];
 
-  state.matches.forEach((match) => {
+  chronologicalMatches(state.matches).forEach((match) => {
     const before = clone(players);
     const applied = applyMatch(players, match);
     players = applied.players;
@@ -116,14 +131,6 @@ function recompute() {
   return players;
 }
 
-function rankingPointsForPosition(position) {
-  if (position === 1) return 100;
-  if (position === 2) return 84;
-  if (position <= 4) return 69;
-  if (position <= 8) return 54;
-  return 35;
-}
-
 function rankingReferenceTime(referenceDate) {
   if (typeof referenceDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(referenceDate)) {
     return Date.parse(`${referenceDate}T00:00:00Z`);
@@ -132,9 +139,19 @@ function rankingReferenceTime(referenceDate) {
   return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
+function chronologicalMatches(matches) {
+  return matches
+    .slice()
+    .sort(
+      (a, b) =>
+        String(a.date).localeCompare(String(b.date)) ||
+        String(a.id).localeCompare(String(b.id))
+    );
+}
+
 function playersForMatches(matches) {
   let players = state.players.map(createStats);
-  matches.forEach((match) => {
+  chronologicalMatches(matches).forEach((match) => {
     players = applyMatch(players, match).players;
   });
   return players
@@ -147,63 +164,53 @@ function playersForDate(date) {
   return playersForMatches(state.matches.filter((match) => match.date === date));
 }
 
-function rankedDayResults(matches) {
-  const players = playersForMatches(matches);
-  let previousRating = null;
-  let previousPosition = 0;
+function skillRankingPlayers(referenceDate) {
+  const referenceTime = rankingReferenceTime(referenceDate);
+  const cutoffTime = referenceTime - rankingWindowDays * 24 * 60 * 60 * 1000;
+  const matches = chronologicalMatches(state.matches).filter((match) => {
+    const matchTime = Date.parse(`${match.date}T00:00:00Z`);
+    return Number.isFinite(matchTime) && matchTime >= cutoffTime && matchTime <= referenceTime;
+  });
+  const metrics = new Map(
+    state.players.map((player) => [player.id, { days: new Set(), opponents: new Set() }])
+  );
+  let players = state.players.map(createStats);
 
-  return players.map((player, index) => {
-    const tiedWithPrevious = previousRating !== null && Math.abs(player.rating - previousRating) < 0.000001;
-    const position = tiedWithPrevious ? previousPosition : index + 1;
-    previousRating = player.rating;
-    previousPosition = position;
+  matches.forEach((match) => {
+    match.teamAIds.forEach((playerId) => {
+      const playerMetrics = metrics.get(playerId);
+      playerMetrics?.days.add(match.date);
+      match.teamBIds.forEach((opponentId) => playerMetrics?.opponents.add(opponentId));
+    });
+    match.teamBIds.forEach((playerId) => {
+      const playerMetrics = metrics.get(playerId);
+      playerMetrics?.days.add(match.date);
+      match.teamAIds.forEach((opponentId) => playerMetrics?.opponents.add(opponentId));
+    });
+    players = applyMatch(players, match).players;
+  });
+
+  return players.map((player) => {
+    const playerMetrics = metrics.get(player.id);
+    const ratingMatches = player.wins + player.losses;
+    const ratingDays = playerMetrics?.days.size || 0;
+    const ratingOpponents = playerMetrics?.opponents.size || 0;
     return {
-      id: player.id,
-      position,
-      points: rankingPointsForPosition(position),
-      dailyRating: player.rating
+      ...player,
+      performanceRating: player.rating,
+      ratingMatches,
+      ratingDays,
+      ratingOpponents,
+      provisional:
+        ratingMatches < officialRatingMatchMinimum ||
+        ratingDays < officialRatingDayMinimum ||
+        ratingOpponents < officialRatingOpponentMinimum
     };
   });
 }
 
 function seasonRankingPlayers(referenceDate) {
-  const performancePlayers = recompute();
-  const referenceTime = rankingReferenceTime(referenceDate);
-  const cutoffTime = referenceTime - rankingWindowDays * 24 * 60 * 60 * 1000;
-  const matchesByDate = new Map();
-
-  state.matches.forEach((match) => {
-    const matchTime = Date.parse(`${match.date}T00:00:00Z`);
-    if (!Number.isFinite(matchTime) || matchTime < cutoffTime || matchTime > referenceTime) return;
-    if (!matchesByDate.has(match.date)) matchesByDate.set(match.date, []);
-    matchesByDate.get(match.date).push(match);
-  });
-
-  const resultsByPlayer = new Map(state.players.map((player) => [player.id, []]));
-  matchesByDate.forEach((matches, date) => {
-    rankedDayResults(matches).forEach((result) => {
-      resultsByPlayer.get(result.id)?.push({ ...result, date });
-    });
-  });
-
-  return performancePlayers.map((player) => {
-    const rankingResults = resultsByPlayer.get(player.id) || [];
-    const bestResults = [...rankingResults]
-      .sort((a, b) => b.points - a.points || b.dailyRating - a.dailyRating || b.date.localeCompare(a.date))
-      .slice(0, rankingBestDayLimit);
-    const rankingPoints = bestResults.reduce((sum, result) => sum + result.points, 0);
-    return {
-      ...player,
-      performanceRating: player.rating,
-      rating: clamp(initialRating + rankingPoints / 200, initialRating, maxRating),
-      rankingPoints,
-      rankingDays: rankingResults.length,
-      countedRankingDays: bestResults.length,
-      rankingFirsts: rankingResults.filter((result) => result.position === 1).length,
-      provisional: rankingResults.length < officialRankingDayMinimum,
-      rankingResults
-    };
-  });
+  return skillRankingPlayers(referenceDate);
 }
 
 function performancePlayers() {
@@ -211,7 +218,7 @@ function performancePlayers() {
 }
 
 function computedPlayers() {
-  return seasonRankingPlayers();
+  return skillRankingPlayers();
 }
 
 function winRate(player) {

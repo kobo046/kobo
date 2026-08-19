@@ -161,106 +161,129 @@ const tests = [
     }
   ],
   [
-    "season ranking awards 100, 84, 69, 54 and 35 points by daily position",
+    "equally established teammates receive equal changes",
     () => {
       const context = createContext();
-      const points = [1, 2, 3, 4, 5, 8, 9, 16].map((position) => {
-        context.position = position;
-        return vm.runInContext("rankingPointsForPosition(position)", context);
-      });
+      context.players = makePlayers();
+      context.match = datedMatch("m1", "2026-08-01");
+      const applied = vm.runInContext("applyMatch(players, match)", context);
 
-      assert.deepEqual(points, [100, 84, 69, 69, 54, 54, 35, 35]);
+      assert.equal(applied.playerChanges.a1, applied.playerChanges.a2);
+      assert.equal(applied.playerChanges.b1, applied.playerChanges.b2);
     }
   ],
   [
-    "season ranking counts only the best ten match days",
+    "less-established teammate rating moves faster in either direction",
     () => {
       const context = createContext();
-      const matches = Array.from({ length: 12 }, (_, index) =>
-        datedMatch(`m${index + 1}`, `2026-07-${String(index + 1).padStart(2, "0")}`)
-      );
-      const players = seasonWith(context, makeBaseState(matches), "2026-08-13");
-      const player = byId(players, "a1");
+      const players = makePlayers();
+      Object.assign(byId(players, "a1"), { wins: 10, losses: 10 });
+      Object.assign(byId(players, "b1"), { wins: 10, losses: 10 });
+      context.players = players;
+      context.match = datedMatch("m1", "2026-08-01");
+      const applied = vm.runInContext("applyMatch(players, match)", context);
 
-      assert.equal(player.rankingDays, 12);
-      assert.equal(player.countedRankingDays, 10);
-      assert.equal(player.rankingPoints, 1000);
-      assert.equal(player.rating, 10);
+      assert.ok(applied.playerChanges.a2 > applied.playerChanges.a1);
+      assert.ok(Math.abs(applied.playerChanges.b2) > Math.abs(applied.playerChanges.b1));
     }
   ],
   [
-    "season ranking excludes results older than 52 weeks",
+    "unrelated extra attendance does not increase another player's skill rating",
+    () => {
+      const context = createContext();
+      const basePlayers = ["a1", "a2", "b1", "b2", "c1", "c2", "d1", "d2"].map((id) => ({
+        id,
+        name: id.toUpperCase(),
+        gender: "男"
+      }));
+      const firstMatch = datedMatch("m1", "2026-08-01");
+      const unrelated = {
+        ...datedMatch("m2", "2026-08-02"),
+        teamAIds: ["c1", "c2"],
+        teamBIds: ["d1", "d2"]
+      };
+      const once = seasonWith(context, { players: basePlayers, matches: [firstMatch] }, "2026-08-13");
+      const withExtra = seasonWith(context, { players: basePlayers, matches: [firstMatch, unrelated] }, "2026-08-13");
+
+      assert.equal(byId(once, "a1").rating, byId(withExtra, "a1").rating);
+    }
+  ],
+  [
+    "rolling skill ranking excludes matches older than 52 weeks",
     () => {
       const context = createContext();
       const matches = [
         datedMatch("old", "2025-08-13"),
-        datedMatch("inside", "2025-08-14")
+        datedMatch("inside", "2025-08-14", 17, 21)
       ];
-      const players = seasonWith(context, makeBaseState(matches), "2026-08-13");
-      const player = byId(players, "a1");
+      const player = byId(seasonWith(context, makeBaseState(matches), "2026-08-13"), "a1");
 
-      assert.equal(player.rankingDays, 1);
-      assert.equal(player.rankingPoints, 100);
-      assert.equal(player.rating, 5.5);
+      assert.equal(player.ratingMatches, 1);
+      assert.ok(player.rating < 5);
     }
   ],
   [
-    "season ranking remains provisional until three match days",
+    "official skill rating requires matches, days and opponent diversity",
     () => {
       const context = createContext();
-      const twoDays = seasonWith(
-        context,
-        makeBaseState([datedMatch("m1", "2026-08-01"), datedMatch("m2", "2026-08-02")]),
-        "2026-08-13"
-      );
-      const threeDays = seasonWith(
-        context,
-        makeBaseState([
-          datedMatch("m1", "2026-08-01"),
-          datedMatch("m2", "2026-08-02"),
-          datedMatch("m3", "2026-08-03")
-        ]),
-        "2026-08-13"
-      );
+      const playerIds = ["a1", "a2", "b1", "b2", "c1", "c2", "d1", "d2"];
+      const players = playerIds.map((id) => ({ id, name: id.toUpperCase(), gender: "男" }));
+      const opponentPairs = [["b1", "b2"], ["c1", "c2"], ["d1", "b1"]];
+      const matches = Array.from({ length: 10 }, (_, index) => ({
+        id: `m${index + 1}`,
+        date: `2026-08-0${(index % 3) + 1}`,
+        teamAIds: ["a1", "a2"],
+        teamBIds: opponentPairs[index % opponentPairs.length],
+        scoreA: 21,
+        scoreB: 17
+      }));
+      const nineMatches = seasonWith(context, { players, matches: matches.slice(0, 9) }, "2026-08-13");
+      const tenMatches = seasonWith(context, { players, matches }, "2026-08-13");
 
-      assert.equal(byId(twoDays, "a1").provisional, true);
-      assert.equal(byId(threeDays, "a1").provisional, false);
+      assert.equal(byId(nineMatches, "a1").provisional, true);
+      assert.equal(byId(tenMatches, "a1").ratingMatches, 10);
+      assert.equal(byId(tenMatches, "a1").ratingDays, 3);
+      assert.equal(byId(tenMatches, "a1").ratingOpponents, 5);
+      assert.equal(byId(tenMatches, "a1").provisional, false);
     }
   ],
   [
-    "players tied on a match day receive the same ranking points",
+    "rolling rating is deterministic even when matches arrive in a different order",
     () => {
       const context = createContext();
-      context.state = makeBaseState([datedMatch("m1", "2026-08-01")]);
-      const results = vm.runInContext("rankedDayResults(state.matches)", context);
-      const a1 = results.find((result) => result.id === "a1");
-      const a2 = results.find((result) => result.id === "a2");
+      const earlier = datedMatch("m1", "2026-08-01");
+      const later = {
+        ...datedMatch("m2", "2026-08-01", 21, 12),
+        teamAIds: ["a1", "b1"],
+        teamBIds: ["a2", "b2"]
+      };
+      const ordered = seasonWith(context, makeBaseState([earlier, later]), "2026-08-13");
+      const insertedLater = seasonWith(context, makeBaseState([later, earlier]), "2026-08-13");
 
-      assert.equal(a1.position, 1);
-      assert.equal(a2.position, 1);
-      assert.equal(a1.points, 100);
-      assert.equal(a2.points, 100);
+      assert.deepEqual(
+        ordered.map((player) => [player.id, player.rating]),
+        insertedLater.map((player) => [player.id, player.rating])
+      );
     }
   ],
   [
-    "season ranking recalculates after an old match is edited or deleted",
+    "rolling skill ranking recalculates after an old match is edited or deleted",
     () => {
       const context = createContext();
       const state = makeBaseState([
         datedMatch("m1", "2026-08-01"),
         datedMatch("m2", "2026-08-02", 17, 21)
       ]);
-      const before = seasonWith(context, state, "2026-08-13");
+      const before = byId(seasonWith(context, state, "2026-08-13"), "a1").rating;
 
       state.matches[1] = datedMatch("m2", "2026-08-02", 21, 17);
-      const afterEdit = seasonWith(context, state, "2026-08-13");
+      const afterEdit = byId(seasonWith(context, state, "2026-08-13"), "a1").rating;
 
       state.matches.splice(1, 1);
-      const afterDelete = seasonWith(context, state, "2026-08-13");
+      const afterDelete = byId(seasonWith(context, state, "2026-08-13"), "a1").rating;
 
-      assert.equal(byId(before, "a1").rankingPoints, 169);
-      assert.equal(byId(afterEdit, "a1").rankingPoints, 200);
-      assert.equal(byId(afterDelete, "a1").rankingPoints, 100);
+      assert.notEqual(before, afterEdit);
+      assert.notEqual(afterEdit, afterDelete);
     }
   ],
   [
