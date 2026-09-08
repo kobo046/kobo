@@ -37,7 +37,7 @@
   },
   "dependencies": {
     "@capacitor/core": "^7.4.4",
-    "@capacitor/ios": "^7.4.4",
+    "@capacitor/ios": "^8.5.1",
     "lucide": "^0.468.0"
   },
   "devDependencies": {
