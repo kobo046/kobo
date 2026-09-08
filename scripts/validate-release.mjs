@@ -28,6 +28,8 @@ const requiredFiles = [
   "app.js",
   "capacitor.config.json",
   "assets/app-icon-1024.png",
+  "assets/lucide.min.js",
+  "assets/lucide.LICENSE",
   "README.md",
   "README.zh-HK.md",
   "LICENSE",
