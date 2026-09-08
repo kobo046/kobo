@@ -11,6 +11,9 @@ function setStatus(message, isError = false) {
   if (!status) return;
   status.textContent = message;
   status.classList.toggle("error", isError);
+  if (typeof appInitialized !== "undefined" && appInitialized && document.body.classList.contains("shell-ready") && document.body.dataset.page !== "match") {
+    showActionToast(message, isError ? "error" : "success");
+  }
 }
 
 let actionToastTimer = null;
@@ -404,7 +407,7 @@ function renderPlayerDetail() {
 }
 
 function renderPlayerOptions() {
-  const options = state.players.map((player) => `<option value="${player.id}">${player.name}</option>`).join("");
+  const options = '<option value="">選擇選手</option>' + state.players.map((player) => `<option value="${escapeHtml(player.id)}">${escapeHtml(player.name)}</option>`).join("");
   const selectIds = ["teamAPlayer1", "teamAPlayer2", "teamBPlayer1", "teamBPlayer2"];
   const previousValues = selectIds.map((id) => byId(id).value);
 
@@ -415,15 +418,6 @@ function renderPlayerOptions() {
     if (previous && state.players.some((player) => player.id === previous)) select.value = previous;
   });
 
-  if (state.players.length >= 4) {
-    const values = selectIds.map((id) => byId(id).value);
-    if (new Set(values).size !== 4 || values.some((value) => !value)) {
-      byId("teamAPlayer1").value = state.players[0].id;
-      byId("teamAPlayer2").value = state.players[1].id;
-      byId("teamBPlayer1").value = state.players[2].id;
-      byId("teamBPlayer2").value = state.players[3].id;
-    }
-  }
 }
 
 function historyDates() {

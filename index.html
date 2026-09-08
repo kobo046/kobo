@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="editorial-theme.css?v=30" />
     <link rel="stylesheet" href="ios-liquid-theme.css?v=36" />
     <link rel="stylesheet" href="human-ui.css?v=2" />
+    <link rel="stylesheet" href="app-shell.css?v=1" />
   </head>
   <body class="viewer-mode">
     <header id="home" class="app-header">
@@ -31,23 +32,23 @@
         </a>
         <div class="nav-links">
           <a href="#leaderboard">排行榜</a>
-          <a href="#days">比賽日</a>
-          <a class="editor-only" href="#match">新增比賽</a>
+          <a href="#match">記分</a>
           <a href="#history">比賽歷史</a>
-          <a href="#cloud">更多</a>
+          <a href="#more">更多</a>
         </div>
       </nav>
+      <div class="shell-heading"><a id="shellBack" href="#more" hidden>← 返回</a><span id="shellTitle">首頁</span><a id="shellCloud" href="#cloud">正在連線</a></div>
 
       <section class="hero" aria-labelledby="hero-title">
         <div class="hero-copy">
           <p class="eyebrow">Badminton rating system</p>
-          <h1 id="hero-title">羽毛球個人積分排行榜</h1>
+          <h1 id="hero-title">羽盟 · 羽毛球積分</h1>
           <p>
-            單日排名顯示即日表現；總排名按最近 52 星期逐場賽果、對手強弱與比分差距估計個人實力。
+            每一場，都有記錄。
           </p>
           <div class="hero-actions">
             <a class="primary-action editor-only" href="#match">記錄新比賽</a>
-            <a class="secondary-action editor-only" href="#players">新增選手</a>
+            <a class="secondary-action" href="#leaderboard">查看排名</a>
           </div>
         </div>
         <figure class="hero-visual">
@@ -63,6 +64,18 @@
     </header>
 
     <main>
+      <section id="homeShortcuts" class="section home-shortcuts"><a href="#match"><i data-lucide="square-plus" aria-hidden="true"></i><span>記錄新比賽</span><b>→</b></a><a href="#days"><i data-lucide="calendar-days" aria-hidden="true"></i><span>查看比賽日</span><b>→</b></a></section>
+      <section id="homeRecent" class="section"><div class="section-heading"><h2>最近球聚</h2><a href="#days">所有比賽日 →</a></div><div id="homeRecentContent"></div></section>
+      <section id="homeLeaders" class="section"><div class="section-heading"><h2>總榜前三</h2><a href="#leaderboard">完整排名 →</a></div><div id="homeLeadersContent"></div></section>
+      <section id="more" class="section"><h2>更多</h2><div class="more-menu">
+        <a href="#players"><i data-lucide="users" aria-hidden="true"></i>選手與戰績<span>›</span></a>
+        <a href="#access"><i data-lucide="lock-keyhole" aria-hidden="true"></i>管理員模式<span>›</span></a>
+        <a href="#cloud"><i data-lucide="cloud" aria-hidden="true"></i>雲端連線<span>›</span></a>
+        <a href="#backup"><i data-lucide="archive" aria-hidden="true"></i>備份與還原<span>›</span></a>
+        <a href="#analytics"><i data-lucide="book-open" aria-hidden="true"></i>計分規則<span>›</span></a>
+        <a class="editor-only" href="#activity"><i data-lucide="list" aria-hidden="true"></i>操作紀錄<span>›</span></a>
+      </div></section>
+      <section id="matchGate" class="section viewer-only"><h2>記錄比賽</h2><p>管理員才可以新增或修改比賽。</p><a class="primary-action" href="#access">進入管理員模式</a></section>
       <section class="section stats-band" aria-label="整體統計">
         <article>
           <span id="totalPlayers">0</span>
@@ -256,7 +269,7 @@
               <label for="scoreA">得分</label>
               <div class="score-stepper">
                 <button class="score-adjust" type="button" aria-label="A 隊減一分" onclick="return handleScoreAdjustClick(event, 'scoreA', -1)">−</button>
-                <input id="scoreA" type="number" min="0" max="99" value="21" inputmode="numeric" aria-label="A 隊得分" />
+                <input id="scoreA" type="number" min="0" max="99" step="1" placeholder="–" inputmode="numeric" aria-label="A 隊得分" />
                 <button class="score-adjust" type="button" aria-label="A 隊加一分" onclick="return handleScoreAdjustClick(event, 'scoreA', 1)">+</button>
               </div>
             </div>
@@ -276,18 +289,17 @@
               <label for="scoreB">得分</label>
               <div class="score-stepper">
                 <button class="score-adjust" type="button" aria-label="B 隊減一分" onclick="return handleScoreAdjustClick(event, 'scoreB', -1)">−</button>
-                <input id="scoreB" type="number" min="0" max="99" value="17" inputmode="numeric" aria-label="B 隊得分" />
+                <input id="scoreB" type="number" min="0" max="99" step="1" placeholder="–" inputmode="numeric" aria-label="B 隊得分" />
                 <button class="score-adjust" type="button" aria-label="B 隊加一分" onclick="return handleScoreAdjustClick(event, 'scoreB', 1)">+</button>
               </div>
             </div>
           </div>
           <div class="team-input match-meta">
-            <h3>比賽資料</h3>
             <label>
               <span>日期</span>
               <input id="matchDate" type="date" />
             </label>
-            <label>
+            <details class="optional-meta"><summary>場地與備註（選填）</summary><label>
               <span>場地</span>
               <input id="matchLocation" type="text" placeholder="例如：天水圍體育館" maxlength="60" />
             </label>
@@ -295,6 +307,7 @@
               <span>備註</span>
               <input id="matchNote" type="text" placeholder="例如：友誼賽／排名賽／練習賽" maxlength="80" />
             </label>
+            </details>
           </div>
           <div class="quick-actions editor-only">
             <button class="secondary-action" type="button" aria-label="套用上一場選手" title="套用上一場選手" onclick="return handleUseLastMatchClick(event)">上一場</button>
@@ -307,6 +320,7 @@
             <button class="primary-action" id="saveMatchButton" type="button" onclick="return handleSaveMatchClick(event)">儲存比賽</button>
           </div>
         </form>
+        <p id="matchCheck" class="match-check" aria-live="polite"></p>
         <div id="appStatus" class="status-box" role="status">系統已載入，可以新增選手同比賽。</div>
         <div id="ratingPreview" class="preview-box"></div>
       </section>
@@ -396,11 +410,11 @@
     </main>
 
     <nav class="mobile-dock" aria-label="手機快速入口">
-      <a href="#leaderboard">排行</a>
-      <a class="viewer-only" href="#days">日期</a>
-      <a class="editor-only" href="#match">新增</a>
-      <a href="#history">記錄</a>
-      <a href="#cloud">更多</a>
+      <a href="#home"><i data-lucide="house" aria-hidden="true"></i><span>首頁</span></a>
+      <a href="#leaderboard"><i data-lucide="chart-no-axes-column-increasing" aria-hidden="true"></i><span>排行</span></a>
+      <a href="#match"><i data-lucide="square-plus" aria-hidden="true"></i><span>記分</span></a>
+      <a href="#history"><i data-lucide="history" aria-hidden="true"></i><span>記錄</span></a>
+      <a href="#more"><i data-lucide="ellipsis" aria-hidden="true"></i><span>更多</span></a>
     </nav>
 
     <footer>
@@ -416,7 +430,7 @@
           <p id="saveConfirmCloud" class="save-confirm-cloud">正在確認儲存狀態。</p>
           <div id="saveConfirmDetails" class="save-confirm-details"></div>
           <div class="save-confirm-actions">
-            <button class="primary-action" type="button" onclick="return handleSaveConfirmCloseClick(event)">知道</button>
+            <button class="primary-action" id="nextMatchButton" type="button" onclick="return handleSaveConfirmCloseClick(event)">記錄下一場</button>
             <button class="secondary-action" type="button" onclick="return handleSaveConfirmHistoryClick(event)">查看比賽歷史</button>
           </div>
         </div>
@@ -431,10 +445,12 @@
     <script src="supabase-config.js?v=32"></script>
     <script src="cloud-storage.js?v=33"></script>
     <script src="auth.js?v=32"></script>
-    <script src="storage.js?v=33"></script>
-    <script src="scoring.js?v=43"></script>
-    <script src="render.js?v=43"></script>
-    <script src="events.js?v=42"></script>
-    <script src="app.js?v=39"></script>
+    <script src="storage.js?v=34"></script>
+    <script src="scoring.js?v=44"></script>
+    <script src="render.js?v=44"></script>
+    <script src="events.js?v=43"></script>
+    <script src="node_modules/lucide/dist/umd/lucide.min.js"></script>
+    <script src="app-shell.js?v=1"></script>
+    <script src="app.js?v=40"></script>
   </body>
 </html>

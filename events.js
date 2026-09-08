@@ -9,6 +9,18 @@ function selectedPlayerIds() {
 
 let lastSavedConfirmationDate = "";
 
+function localMatchDate() {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function validateMatchScores(scoreA, scoreB) {
+  const valid = (value) => String(value).trim() !== "" && Number.isInteger(Number(value)) && Number(value) >= 0 && Number(value) <= 99;
+  if (!valid(scoreA) || !valid(scoreB)) return "請輸入兩隊得分（0 至 99 的整數）。";
+  if (Number(scoreA) === Number(scoreB)) return "比分不能平手，請確認比賽結果。";
+  return "";
+}
+
 function setActionBusy(button, isBusy, busyLabel = "處理中…") {
   if (!button) return;
   if (isBusy) {
@@ -58,7 +70,7 @@ function validateMatchSelection() {
 function readMatchForm() {
   return {
     id: editingMatchId || `m-${Date.now()}`,
-    date: byId("matchDate").value || new Date().toISOString().slice(0, 10),
+    date: byId("matchDate").value || localMatchDate(),
     location: byId("matchLocation").value.trim(),
     note: byId("matchNote").value.trim(),
     teamAIds: [byId("teamAPlayer1").value, byId("teamAPlayer2").value],
@@ -80,6 +92,7 @@ function escapeHtml(value) {
 function hideSaveConfirmation() {
   const overlay = byId("saveConfirmOverlay");
   if (overlay) overlay.classList.add("hidden");
+  if (typeof appShell !== "undefined") appShell.modal(false);
 }
 
 function showSaveConfirmation(match, syncResult, wasEditing) {
@@ -113,6 +126,7 @@ function showSaveConfirmation(match, syncResult, wasEditing) {
     .join("");
   byId("saveConfirmOverlay").classList.remove("hidden");
   lastSavedConfirmationDate = match.date || "";
+  if (typeof appShell !== "undefined") appShell.modal(true);
 }
 
 function setMatchFormFromMatch(match, options = {}) {
@@ -134,7 +148,7 @@ function setMatchFormFromMatch(match, options = {}) {
 
 function renderPreview() {
   const preview = byId("ratingPreview");
-  const error = validateMatchSelection();
+  const error = validateMatchSelection() || validateMatchScores(byId("scoreA").value, byId("scoreB").value);
   if (error) {
     preview.className = "preview-box visible";
     preview.innerHTML = `<strong>${error}</strong>`;
@@ -150,21 +164,18 @@ function renderPreview() {
     return null;
   }
 
-  const previewPlayers = performancePlayers();
-  const result = calculateMatchChange(match.teamAIds, match.teamBIds, match.scoreA, match.scoreB, previewPlayers);
-  const winners = result.actualA === 1 ? match.teamAIds : match.teamBIds;
-  const rows = [...match.teamAIds, ...match.teamBIds]
-    .map((id) => {
-      const player = previewPlayers.find((item) => item.id === id);
-      const change = match.teamAIds.includes(id) ? result.changeA : result.changeB;
-      return `<p class="meta">${player.name}：${formatScore(player.rating)} → ${formatScore(clamp(player.rating + change, minRating, maxRating))} (${change >= 0 ? "+" : ""}${change.toFixed(2)})</p>`;
+  const winners = match.scoreA > match.scoreB ? match.teamAIds : match.teamBIds;
+  const rows = previewMatchRatings(match)
+    .map((row) => {
+      const change = row.after - row.before;
+      return `<div class="preview-rating"><strong>${escapeHtml(playerName(row.id))}</strong><small>總排名 ${formatScore(row.before)} → ${formatScore(row.after)} (${change >= 0 ? "+" : ""}${formatScore(change)})</small><small>單日 ${formatScore(row.dayBefore)} → ${formatScore(row.dayAfter)}</small></div>`;
     })
     .join("");
 
   preview.className = "preview-box visible";
   preview.innerHTML = `
-    <strong>${winners.map(playerName).join(" / ")} 勝出</strong>
-    <p class="meta">比分差距倍率：${result.marginMultiplier.toFixed(2)} · A 隊預期勝率：${Math.round(result.expectedA * 100)}% · 得失分修正：${result.scoreDiffA >= 0 ? "+" : ""}${result.scoreDiffA.toFixed(2)}</p>
+    <strong>${escapeHtml(winners.map(playerName).join(" / "))} 勝出</strong>
+    <p class="meta">按正式排名重新計算；編輯舊比賽亦可能影響之後的比賽。</p>
     ${rows}
   `;
   setStatus("試算完成。按「儲存比賽」先會正式寫入。");
@@ -176,9 +187,23 @@ async function saveMatch(event) {
   if (!guardEditorAction("儲存比賽")) return;
   const saveButton = byId("saveMatchButton");
   if (saveButton && saveButton.disabled) return;
+  if (editingMatchId && !state.matches.some((item) => item.id === editingMatchId)) {
+    setStatus("這場比賽已不在資料中，未儲存任何修改。請先到記錄頁確認。", true);
+    return;
+  }
   const match = renderPreview();
   if (!match) return;
+  const sameTeam = (a, b) => a.slice().sort().join("|") === b.slice().sort().join("|");
+  const duplicate = state.matches.some((item) => item.id !== match.id && item.date === match.date && (
+    (sameTeam(item.teamAIds, match.teamAIds) && sameTeam(item.teamBIds, match.teamBIds) && item.scoreA === match.scoreA && item.scoreB === match.scoreB) ||
+    (sameTeam(item.teamAIds, match.teamBIds) && sameTeam(item.teamBIds, match.teamAIds) && item.scoreA === match.scoreB && item.scoreB === match.scoreA)
+  ));
+  if (duplicate && !window.confirm("當日已有相同隊伍與比分。確定這是另一場比賽，要再儲存？")) return;
   setActionBusy(saveButton, true, "正在儲存…");
+  byId("matchForm").inert = true;
+  const previousState = clone(state);
+  const previousEditingId = editingMatchId;
+  let locallySaved = false;
   const wasEditing = Boolean(editingMatchId);
   const logDetail = `${match.date} ${teamLabel(match.teamAIds)} ${match.scoreA}:${match.scoreB} ${teamLabel(match.teamBIds)}`;
   const savedMatch = { ...match, updatedAt: new Date().toISOString() };
@@ -186,21 +211,28 @@ async function saveMatch(event) {
   try {
     if (editingMatchId) {
       state.matches = state.matches.map((item) => (item.id === editingMatchId ? { ...savedMatch, id: editingMatchId } : item));
-      setStatus("比賽已更新，排行榜已重新計算。");
+      setStatus("正在儲存修改…");
     } else {
       state.matches.push(savedMatch);
-      setStatus(`比賽已儲存。目前共有 ${state.matches.length} 場比賽。`);
+      setStatus("正在儲存比賽…");
     }
 
-    editingMatchId = "";
     const syncResult = await saveState({
       changedPlayerIds: [],
       changedMatchIds: [savedMatch.id],
       backupReason: wasEditing ? "編輯比賽前" : "新增比賽前"
     });
-    if (typeof recordActivity === "function") recordActivity(wasEditing ? "編輯比賽" : "新增比賽", logDetail);
+    locallySaved = true;
+    try {
+      if (typeof recordActivity === "function") recordActivity(wasEditing ? "編輯比賽" : "新增比賽", logDetail);
+    } catch (error) {
+      console.warn("Match saved, but the activity log could not be written", error);
+    }
     clearMatchEditingUi();
+    byId("scoreA").value = "";
+    byId("scoreB").value = "";
     renderAll();
+    if (typeof appShell !== "undefined") appShell.saveDraft();
     byId("ratingPreview").className = "preview-box visible";
     byId("ratingPreview").innerHTML = "<strong>比賽已儲存，個人排行榜已更新。</strong>";
     if (syncResult && syncResult.cloud) {
@@ -209,7 +241,14 @@ async function saveMatch(event) {
       setStatus(`比賽已儲存，但${syncResult.message}`, Boolean(syncResult.error));
     }
     showSaveConfirmation(savedMatch, syncResult, wasEditing);
+  } catch (error) {
+    if (!locallySaved) {
+      state = previousState;
+      editingMatchId = previousEditingId;
+    }
+    throw error;
   } finally {
+    byId("matchForm").inert = false;
     setActionBusy(saveButton, false);
     if (saveButton) saveButton.textContent = editingMatchId ? "更新比賽" : "儲存比賽";
   }
@@ -313,6 +352,7 @@ function editMatch(matchId) {
   setStatus("正在編輯舊比賽。修改後按「更新比賽」。");
   location.hash = "#match";
   renderPreview();
+  if (typeof appShell !== "undefined") appShell.saveDraft();
 }
 
 async function deleteMatch(matchId) {
@@ -367,7 +407,7 @@ async function resetData() {
 }
 
 function bindEvents() {
-  if (!byId("matchDate").value) byId("matchDate").value = new Date().toISOString().slice(0, 10);
+  if (!byId("matchDate").value) byId("matchDate").value = localMatchDate();
   byId("searchInput").addEventListener("input", renderLeaderboard);
   byId("sortSelect").addEventListener("change", renderLeaderboard);
   byId("mobileLeaderboardToolsButton").addEventListener("click", toggleMobileLeaderboardTools);
@@ -379,10 +419,8 @@ function bindEvents() {
   byId("historyDate").addEventListener("change", (event) => setHistoryDate(event.target.value));
   byId("historyMoreButton").addEventListener("click", toggleHistoryRecords);
   byId("activityMoreButton").addEventListener("click", toggleActivityRecords);
-  byId("previewButton").addEventListener("click", () => renderPreview());
-  byId("matchForm").addEventListener("submit", saveMatch);
-  byId("playerForm").addEventListener("submit", addPlayer);
-  byId("resetButton").addEventListener("click", resetData);
+  byId("matchForm").addEventListener("submit", handleSaveMatchClick);
+  byId("playerForm").addEventListener("submit", handleAddPlayerClick);
 }
 
 function toggleMobileLeaderboardTools() {
@@ -450,6 +488,7 @@ function useLastMatchPlayers() {
   byId("scoreB").value = 17;
   renderPreview();
   setStatus("已套用上一場的 4 位選手。");
+  if (typeof appShell !== "undefined") appShell.saveDraft();
 }
 
 function swapTeams() {
@@ -468,6 +507,7 @@ function swapTeams() {
   byId("scoreB").value = scoreA;
   renderPreview();
   setStatus("已交換 A / B 隊。");
+  if (typeof appShell !== "undefined") appShell.saveDraft();
 }
 
 function resetScores() {
@@ -476,6 +516,7 @@ function resetScores() {
   byId("scoreB").value = 17;
   renderPreview();
   setStatus("已重設分數為 21:17。");
+  if (typeof appShell !== "undefined") appShell.saveDraft();
 }
 
 function adjustScore(targetId, delta) {
@@ -523,6 +564,9 @@ async function handleSaveMatchClick(event) {
 function handleCancelEditClick(event) {
   if (event) event.preventDefault();
   clearMatchEditingUi();
+  byId("scoreA").value = "";
+  byId("scoreB").value = "";
+  if (typeof appShell !== "undefined") appShell.saveDraft();
   byId("ratingPreview").className = "preview-box";
   setStatus("已取消編輯。");
   return false;
@@ -601,7 +645,8 @@ async function handleCloudSyncNowClick(event) {
   setActionBusy(button, true, "正在同步…");
   try {
     if (canEditData()) {
-      await uploadLocalStateToCloud();
+      const uploaded = await uploadLocalStateToCloud();
+      if (!uploaded) throw new Error("雲端同步未完成，請查看連線詳情。");
       setStatus("重新同步完成，本機與雲端資料已合併及核對。");
       showActionToast("同步完成，雲端與本機已核對");
     } else {

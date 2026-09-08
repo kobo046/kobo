@@ -8,6 +8,7 @@ let leaderboardMode = "all";
 let selectedLeaderboardDate = "";
 let historyExpanded = false;
 let activityExpanded = false;
+let appInitialized = false;
 
 function renderAll() {
   renderStats();
@@ -19,6 +20,7 @@ function renderAll() {
   renderHistory();
   renderActivityLog();
   renderRuleCards();
+  if (typeof appShell !== "undefined") appShell.refresh();
   if (typeof updateCloudFacts === "function" && typeof cloudConnectionState !== "undefined") {
     updateCloudFacts(cloudConnectionState);
   }
@@ -32,6 +34,7 @@ async function initializeApp() {
   selectedPlayerId = state.players.length ? state.players[0].id : "";
   bindEvents();
   renderAll();
+  if (typeof appShell !== "undefined") appShell.init();
   if (typeof updateAuthUi === "function") updateAuthUi();
   setStatus(window.cloudSync && window.cloudSync.isConfigured() ? "正在連接雲端，畫面先顯示本機資料。" : storageModeLabel());
 
@@ -48,6 +51,7 @@ async function initializeApp() {
     setStatus("雲端資料已更新，排行榜已同步。");
   });
   setStatus(storageModeLabel(), typeof isCloudConnectionError === "function" && isCloudConnectionError());
+  appInitialized = true;
 }
 
 initializeApp().catch((error) => {

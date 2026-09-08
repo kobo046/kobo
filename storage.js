@@ -376,6 +376,7 @@ async function saveState(options = {}) {
   state = normalizeState(state || {});
   createAutomaticBackup(options.backupReason || "儲存資料前", readSavedState() || state);
   localStorage.setItem(storageKey, JSON.stringify(state));
+  const expectedState = clone(state);
   if (!window.cloudSync || !window.cloudSync.isConfigured()) {
     cloudConnectionState = "local";
     lastCloudMessage = "未設定 Supabase。";
@@ -396,6 +397,9 @@ async function saveState(options = {}) {
     }
     await window.cloudSync.saveStateToCloud(state, options);
     const cloudState = await window.cloudSync.loadStateFromCloud();
+    if (!verifyCloudWrite(expectedState, cloudState, options)) {
+      throw new Error("雲端未確認最新的比賽內容，本機記錄仍然保留。請稍後重新同步。");
+    }
     state = mergeStateData(state, cloudState || {});
     localStorage.setItem(storageKey, JSON.stringify(state));
     const cloudPlayers = Array.isArray(cloudState && cloudState.players) ? cloudState.players.length : 0;
@@ -444,6 +448,26 @@ async function saveState(options = {}) {
       message: `雲端儲存失敗，本機已暫存：${error.message}`
     };
   }
+}
+
+function verifyCloudWrite(expectedState, cloudState, options = {}) {
+  if (!cloudState) return false;
+  const expected = normalizeState(expectedState, { allowEmpty: true });
+  const remote = normalizeState(cloudState, { allowEmpty: true });
+  for (const [kind, changedKey, deletedKey] of [["players", "changedPlayerIds", "deletedPlayerIds"], ["matches", "changedMatchIds", "deletedMatchIds"]]) {
+    const ids = options[changedKey] || expected[kind].map((item) => item.id);
+    for (const id of ids) {
+      const local = expected[kind].find((item) => item.id === id);
+      const cloud = remote[kind].find((item) => item.id === id);
+      if (!local || !cloud) return false;
+      const { updatedAt: localTime, ...localData } = local;
+      const { updatedAt: cloudTime, ...cloudData } = cloud;
+      if (JSON.stringify(localData) !== JSON.stringify(cloudData)) return false;
+      if (localTime && (!Number.isFinite(Date.parse(cloudTime)) || Date.parse(cloudTime) < Date.parse(localTime))) return false;
+    }
+    if ((options[deletedKey] || []).some((id) => remote[kind].some((item) => item.id === id))) return false;
+  }
+  return true;
 }
 
 async function uploadLocalStateToCloud() {

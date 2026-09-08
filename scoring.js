@@ -95,7 +95,7 @@ function applyMatch(players, match) {
     const pointsFor = isA ? match.scoreA : match.scoreB;
     const pointsAgainst = isA ? match.scoreB : match.scoreA;
     const won = isA ? aWins : !aWins;
-    playerChanges[player.id] = change;
+    playerChanges[player.id] = clamp(player.rating + change, minRating, maxRating) - player.rating;
 
     return {
       ...player,
@@ -149,8 +149,8 @@ function chronologicalMatches(matches) {
     );
 }
 
-function playersForMatches(matches) {
-  let players = state.players.map(createStats);
+function playersForMatches(matches, sourcePlayers = state.players) {
+  let players = sourcePlayers.map(createStats);
   chronologicalMatches(matches).forEach((match) => {
     players = applyMatch(players, match).players;
   });
@@ -164,17 +164,17 @@ function playersForDate(date) {
   return playersForMatches(state.matches.filter((match) => match.date === date));
 }
 
-function skillRankingPlayers(referenceDate) {
+function skillRankingPlayers(referenceDate, sourceState = state) {
   const referenceTime = rankingReferenceTime(referenceDate);
   const cutoffTime = referenceTime - rankingWindowDays * 24 * 60 * 60 * 1000;
-  const matches = chronologicalMatches(state.matches).filter((match) => {
+  const matches = chronologicalMatches(sourceState.matches).filter((match) => {
     const matchTime = Date.parse(`${match.date}T00:00:00Z`);
     return Number.isFinite(matchTime) && matchTime >= cutoffTime && matchTime <= referenceTime;
   });
   const metrics = new Map(
-    state.players.map((player) => [player.id, { days: new Set(), opponents: new Set() }])
+    sourceState.players.map((player) => [player.id, { days: new Set(), opponents: new Set() }])
   );
-  let players = state.players.map(createStats);
+  let players = sourceState.players.map(createStats);
 
   matches.forEach((match) => {
     match.teamAIds.forEach((playerId) => {
@@ -219,6 +219,22 @@ function performancePlayers() {
 
 function computedPlayers() {
   return skillRankingPlayers();
+}
+
+// Replay the candidate in chronological order, including later matches after an edit.
+function previewMatchRatings(match, referenceDate, sourceState = state) {
+  const next = { players: sourceState.players, matches: [...sourceState.matches.filter((item) => item.id !== match.id), match] };
+  const before = skillRankingPlayers(referenceDate, sourceState);
+  const after = skillRankingPlayers(referenceDate, next);
+  const dayBefore = playersForMatches(sourceState.matches.filter((item) => item.date === match.date), sourceState.players);
+  const dayAfter = playersForMatches(next.matches.filter((item) => item.date === match.date), sourceState.players);
+  return [...match.teamAIds, ...match.teamBIds].map((id) => ({
+    id,
+    before: before.find((p) => p.id === id).rating,
+    after: after.find((p) => p.id === id).rating,
+    dayBefore: dayBefore.find((p) => p.id === id)?.rating ?? initialRating,
+    dayAfter: dayAfter.find((p) => p.id === id)?.rating ?? initialRating
+  }));
 }
 
 function winRate(player) {
