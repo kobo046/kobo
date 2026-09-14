@@ -34,6 +34,11 @@ test("mobile tabs, draft, compact entry and honest local save", async ({ page },
   await expect(page.locator(".mobile-dock a")).toHaveCount(5);
   await expect(page.locator(".mobile-dock svg")).toHaveCount(5);
   await fillMatch(page);
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    expect((await page.locator("#previewButton").boundingBox()).height).toBeLessThanOrEqual(60);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
   const a = await page.locator(".flexible-team").first().boundingBox();
   const b = await page.locator(".flexible-team").last().boundingBox();
   expect(Math.abs(a.y - b.y)).toBeLessThan(2);
@@ -118,4 +123,51 @@ test("failed cloud verification preserves the locally saved match", async ({ pag
   await page.locator("#saveMatchButton").click();
   await expect(page.locator("#saveConfirmTitle")).toHaveText("已儲存本機，雲端未同步");
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("badmintonPlayerRating.v2")).matches.length)).toBe(13);
+});
+
+test("home and total leaderboard share ranks, ties and eligibility across navigation and search", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await setup(page);
+  // Deliberately give a provisional player the highest score and an inactive player 5.00.
+  await page.evaluate(() => {
+    computedPlayers = () => state.players.map((player, index) => ({
+      ...createStats(player), rating: [4, 9, 6, 6, 5, 5, 5][index],
+      wins: index < 4 ? [10, 1, 5, 5][index] : 0,
+      losses: index < 4 ? [0, 0, 5, 5][index] : 0,
+      ratingMatches: index < 4 ? (index === 1 ? 1 : 10) : 0,
+      ratingDays: index < 4 ? (index === 1 ? 1 : 3) : 0,
+      ratingOpponents: index < 4 ? (index === 1 ? 2 : 5) : 0,
+      provisional: index === 1 || index >= 4
+    }));
+    renderAll();
+  });
+  const names = ["Tim", "Anson", "Kobo"];
+  await expect(page.locator("#homeLeadersContent .home-player strong")).toHaveText(names);
+  await expect(page.locator("#homeLeadersContent .home-position")).toHaveText(["1", "1", "3"]);
+  await expect(page.locator("#topScore")).toHaveText("6.00");
+  await expect(page.locator("#avgScore")).toHaveText("6.25");
+  await page.screenshot({ path: testInfo.outputPath("home-ranking-mobile.png"), fullPage: true });
+  await page.locator('#homeLeaders .section-heading a').click();
+  await expect(page.locator("#leaderboardAllButton")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#mobileLeaderboard .rank")).toHaveText(["1", "1", "3", "4", "–", "–", "–"]);
+  const summary = await page.locator("#leaderboardSummary").textContent();
+  await page.locator("#mobileLeaderboardToolsButton").click();
+  await page.locator("#searchInput").fill("Kobo");
+  await expect(page.locator("#mobileLeaderboard .rank")).toHaveText(["3"]);
+  await expect(page.locator("#leaderboardSummary")).toHaveText(summary);
+  await page.locator("#searchInput").fill("");
+  await page.locator("#sortSelect").selectOption("winRate");
+  await expect(page.locator("#mobileLeaderboard .rank").first()).toHaveText("3");
+  await expect(page.locator("#leaderboardSummary")).toHaveText(summary);
+  await page.locator("#leaderboardDayButton").click();
+  await page.locator('.mobile-dock a[href="#home"]').click();
+  await page.locator("#homeLeadersContent .home-leader").first().click();
+  await expect(page.locator("#leaderboardAllButton")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#sortSelect")).toHaveValue("rating");
+  await expect(page.locator("#searchInput")).toHaveValue("");
+  await expect(page.locator("#mobileLeaderboard .mobile-player-name strong")).toHaveText([...names, "Him", "大Tom", "亮", "Anson y"]);
+  await page.screenshot({ path: testInfo.outputPath("total-ranking-mobile.png"), fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await expect(page.locator("#leaderboardBody .rank")).toHaveText(["1", "1", "3", "4", "–", "–", "–"]);
+  await page.screenshot({ path: testInfo.outputPath("total-ranking-desktop.png"), fullPage: true });
 });

@@ -62,8 +62,11 @@ const appShell = (() => {
     } else {
       container.innerHTML = '<p class="meta">未有比賽紀錄。</p><a class="secondary-action" href="#match">記錄第一場比賽</a>';
     }
-    const leaders = computedPlayers().filter((player) => player.wins + player.losses > 0).sort((a, b) => b.rating - a.rating).slice(0, 3);
-    byId("homeLeadersContent").innerHTML = leaders.length ? leaders.map((player, index) => `<a class="home-leader" href="#leaderboard"><span class="home-position">${index + 1}</span><strong>${escapeHtml(player.name)}</strong><small>${player.provisional ? "暫定評級" : "正式評級"}</small><b>${formatScore(player.rating)}</b></a>`).join("") : '<p class="meta">完成比賽後，這裡會顯示最新排名。</p>';
+    const leaders = totalLeaderboardPlayers().filter((player) => player.rank !== null).slice(0, 3);
+    byId("homeLeadersContent").innerHTML = leaders.length ? leaders.map((player) => `<a class="home-leader" href="#leaderboard" data-ranking-mode="all"><span class="home-position">${player.rank}</span><span class="home-player"><strong>${escapeHtml(player.name)}</strong><small>${player.ratingMatches} 場 · ${player.ratingDays} 日</small></span><span class="rating-status ${player.provisional ? "is-provisional" : ""}">${player.provisional ? "暫定" : "正式"}</span><b>${formatScore(player.rating)}</b></a>`).join("") : '<p class="meta">完成比賽後，這裡會顯示最新排名。</p>';
+    byId("homeRankingNote").textContent = leaders.length
+      ? (leaders.every((player) => player.provisional) ? "目前均為暫定評級，按分數排列。" : "正式評級優先，組內按分數排列。")
+      : "最近 52 星期";
     if (pendingDraft) {
       const draft = pendingDraft;
       fields.forEach((id) => {
@@ -108,6 +111,12 @@ const appShell = (() => {
     refresh();
     route();
     window.addEventListener("hashchange", route);
+    document.addEventListener("click", (event) => {
+      if (!event.target.closest('[data-ranking-mode="all"]')) return;
+      byId("searchInput").value = "";
+      byId("sortSelect").value = "rating";
+      setLeaderboardMode("all");
+    });
     byId("matchForm").addEventListener("input", saveDraft);
     byId("matchForm").addEventListener("change", saveDraft);
     window.addEventListener("pagehide", saveDraft);

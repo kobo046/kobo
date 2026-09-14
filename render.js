@@ -180,17 +180,40 @@ function leaderboardPlayers() {
   return playersForDate(selectedLeaderboardDate);
 }
 
+function rankedLeaderboardPlayers(players, total = true) {
+  const ordered = [...players].sort((a, b) => {
+    const aPlayed = a.wins + a.losses > 0;
+    const bPlayed = b.wins + b.losses > 0;
+    if (aPlayed !== bPlayed) return aPlayed ? -1 : 1;
+    if (total && Boolean(a.provisional) !== Boolean(b.provisional)) return a.provisional ? 1 : -1;
+    return b.rating - a.rating || String(a.id).localeCompare(String(b.id));
+  });
+  let previous = null;
+  return ordered.map((player, index) => {
+    const tied = previous && Math.abs(player.rating - previous.rating) < 0.000001 &&
+      (!total || Boolean(player.provisional) === Boolean(previous.provisional));
+    const ranked = { ...player, rank: player.wins + player.losses > 0 ? (tied ? previous.rank : index + 1) : null };
+    previous = ranked;
+    return ranked;
+  });
+}
+
+function totalLeaderboardPlayers() {
+  return rankedLeaderboardPlayers(computedPlayers());
+}
+
 function sortedPlayers() {
   const query = byId("searchInput").value.trim().toLowerCase();
   const sort = byId("sortSelect").value;
-  return leaderboardPlayers()
+  return rankedLeaderboardPlayers(leaderboardPlayers(), leaderboardMode === "all")
     .filter((player) => player.name.toLowerCase().includes(query))
     .sort((a, b) => {
+      if ((a.rank === null) !== (b.rank === null)) return a.rank === null ? 1 : -1;
       if (leaderboardMode === "all" && a.provisional !== b.provisional) return a.provisional ? 1 : -1;
       if (sort === "winRate") return winRate(b) - winRate(a);
       if (sort === "matches") return b.wins + b.losses - (a.wins + a.losses);
       if (sort === "recent") return new Date(b.recent || 0) - new Date(a.recent || 0);
-      return b.rating - a.rating;
+      return (a.rank ?? Infinity) - (b.rank ?? Infinity);
     });
 }
 
@@ -213,8 +236,14 @@ function renderLeaderboardControls(rows) {
     dateInput.disabled = leaderboardMode !== "day" || !dates.length;
     dateInput.closest(".leaderboard-date-field")?.classList.toggle("is-inactive", leaderboardMode !== "day");
   }
-  if (allButton) allButton.classList.toggle("active", leaderboardMode === "all");
-  if (dayButton) dayButton.classList.toggle("active", leaderboardMode === "day");
+  if (allButton) {
+    allButton.classList.toggle("active", leaderboardMode === "all");
+    allButton.setAttribute("aria-pressed", String(leaderboardMode === "all"));
+  }
+  if (dayButton) {
+    dayButton.classList.toggle("active", leaderboardMode === "day");
+    dayButton.setAttribute("aria-pressed", String(leaderboardMode === "day"));
+  }
 
   byId("leaderboardSummary").innerHTML = `
     <article>
@@ -227,22 +256,22 @@ function renderLeaderboardControls(rows) {
     </article>
     <article>
       <span>${topPlayer ? formatScore(topPlayer.rating) : formatScore(initialRating)}</span>
-      <p>最高分</p>
+      <p>榜首評分</p>
     </article>
     <article>
-      <span>${topPlayer ? topPlayer.name : "-"}</span>
+      <span>${topPlayer ? escapeHtml(topPlayer.name) : "-"}</span>
       <p>目前第一</p>
     </article>
   `;
 }
 
 function renderStats() {
-  const players = computedPlayers();
+  const players = totalLeaderboardPlayers().filter((player) => player.rank !== null);
   const scores = players.map((player) => player.rating);
   const avg = scores.length ? scores.reduce((sum, score) => sum + score, 0) / scores.length : initialRating;
   byId("totalPlayers").textContent = state.players.length;
   byId("totalMatches").textContent = state.matches.length;
-  byId("topScore").textContent = formatScore(scores.length ? Math.max(...scores) : initialRating);
+  byId("topScore").textContent = formatScore(scores.length ? scores[0] : initialRating);
   byId("avgScore").textContent = formatScore(avg);
 }
 
@@ -282,7 +311,7 @@ function renderDayOverview() {
 function renderLeaderboard() {
   const rows = sortedPlayers();
   const canEdit = canRenderEditorActions();
-  renderLeaderboardControls(rows);
+  renderLeaderboardControls(rankedLeaderboardPlayers(leaderboardPlayers(), leaderboardMode === "all").filter((player) => player.rank !== null));
   const mobileLeaderboard = byId("mobileLeaderboard");
   if (mobileLeaderboard) {
     mobileLeaderboard.innerHTML = rows.length
@@ -292,9 +321,9 @@ function renderLeaderboard() {
             return `
               <details class="mobile-leaderboard-item">
                 <summary>
-                  <span class="rank">${index + 1}</span>
+                  <span class="rank">${player.rank ?? "–"}</span>
                   <span class="mobile-player-name">
-                    <strong>${player.name}</strong>
+                    <strong>${escapeHtml(player.name)}</strong>
                     <small>${player.gender}${leaderboardMode === "all" && player.provisional ? " · 暫定" : ""}</small>
                   </span>
                   <span class="score-pill">${formatScore(player.rating)}</span>
@@ -319,7 +348,7 @@ function renderLeaderboard() {
             `;
           })
           .join("")
-      : `<p class="mobile-leaderboard-empty">未有選手資料。</p>`;
+      : `<p class="mobile-leaderboard-empty">${byId("searchInput").value.trim() ? "找不到符合的選手。" : "未有出賽資料。"}</p>`;
   }
   byId("leaderboardBody").innerHTML = rows.length
     ? rows
@@ -328,9 +357,9 @@ function renderLeaderboard() {
           const pointDiff = player.pointsFor - player.pointsAgainst;
           return `
             <tr>
-              <td><span class="rank">${index + 1}</span></td>
+              <td><span class="rank">${player.rank ?? "–"}</span></td>
               <td>
-                <div class="team-name">${player.name}</div>
+                <div class="team-name">${escapeHtml(player.name)}</div>
                 <div class="members">${player.gender}</div>
               </td>
               <td><span class="score-pill">${formatScore(player.rating)}</span>${leaderboardMode === "all" ? `<div class="members">${totalRankingMeta(player)}</div>` : ""}</td>
