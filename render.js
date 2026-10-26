@@ -316,25 +316,33 @@ function renderLeaderboard() {
   if (mobileLeaderboard) {
     mobileLeaderboard.innerHTML = rows.length
       ? rows
-          .map((player, index) => {
+          .map((player) => {
+            const played = player.wins + player.losses;
             const pointDiff = player.pointsFor - player.pointsAgainst;
+            const statParts = played ? [`勝率 ${winRate(player)}%`, `${played} 場`] : ["未有出賽"];
+            if (player.gender) statParts.push(escapeHtml(player.gender));
+            if (leaderboardMode === "all") statParts.push(player.provisional ? `<span class="mobile-provisional">暫定</span>` : "正式");
+            const qualification = leaderboardMode === "all"
+              ? `<span><small>評分場數</small><strong>${player.ratingMatches} 場</strong></span><span><small>比賽日數</small><strong>${player.ratingDays} 日</strong></span><span><small>不同對手</small><strong>${player.ratingOpponents} 位</strong></span>`
+              : "";
             return `
               <details class="mobile-leaderboard-item">
                 <summary>
-                  <span class="rank">${player.rank ?? "–"}</span>
-                  <span class="mobile-player-name">
-                    <strong>${escapeHtml(player.name)}</strong>
-                    <small>${player.gender}${leaderboardMode === "all" && player.provisional ? " · 暫定" : ""}</small>
+                  <span class="rank${player.rank === 1 ? " is-lead" : ""}">${player.rank ?? "–"}</span>
+                  <span class="mobile-player-copy">
+                    <span class="mobile-player-name">
+                      <strong>${escapeHtml(player.name)}</strong>
+                    </span>
+                    <span class="mobile-player-stats">${statParts.join(" · ")}</span>
                   </span>
-                  <span class="score-pill">${formatScore(player.rating)}</span>
+                  <span class="mobile-player-rating">${formatScore(player.rating)}</span>
                   <span class="mobile-detail-indicator" aria-hidden="true"></span>
                 </summary>
                 <div class="mobile-player-details">
-                  ${leaderboardMode === "all" ? `<span><small>評分場數</small><strong>${player.ratingMatches} 場</strong></span><span><small>比賽日數</small><strong>${player.ratingDays} 日</strong></span><span><small>不同對手</small><strong>${player.ratingOpponents} 位</strong></span>` : ""}
-                  <span><small>勝率</small><strong>${winRate(player)}%</strong></span>
+                  ${qualification}
                   <span><small>戰績</small><strong>${player.wins} 勝 ${player.losses} 敗</strong></span>
                   <span><small>得失分</small><strong>${player.pointsFor}:${player.pointsAgainst} (${pointDiff >= 0 ? "+" : ""}${pointDiff})</strong></span>
-                  <span><small>最近比賽</small><strong>${player.recent || "-"}</strong></span>
+                  <span><small>最近比賽</small><strong>${escapeHtml(player.recent || "-")}</strong></span>
                 </div>
                 ${
                   canEdit
