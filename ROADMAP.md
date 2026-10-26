@@ -1,5 +1,7 @@
 # Roadmap
 
+Sequenced work, effort, and the open Dependabot queue are tracked in the [improvement plan](docs/IMPROVEMENT_PLAN.md). The list below is the product direction.
+
 The roadmap favors reliability for real badminton groups over feature count.
 
 ## Priority 1: secure shared deployments

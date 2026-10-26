@@ -50,7 +50,8 @@ const markdownFiles = [
   "ROADMAP.md",
   "docs/ARCHITECTURE.md",
   "docs/SCORING.md",
-  "docs/PROJECT_IMPACT.md"
+  "docs/PROJECT_IMPACT.md",
+  "docs/IMPROVEMENT_PLAN.md"
 ];
 
 for (const path of markdownFiles) {
