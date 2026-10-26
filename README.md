@@ -118,7 +118,7 @@ npm run audit       # fail on high/critical dependency advisories
 npm run build:ios-web
 ```
 
-CI runs on every pull request and push to `main`. GitHub Pages deploys only after the validation job succeeds.
+CI runs on every pull request and push to `main`. The hosted site is currently published from the `main` branch root; the Actions workflow in `.github/workflows/pages.yml` is not the active Pages source. See the [improvement plan](docs/IMPROVEMENT_PLAN.md).
 
 ## Contributing
 
@@ -132,7 +132,7 @@ Bug reports, scoring discussions, translations, accessibility improvements, and 
 - More ranking simulations and fairness reports
 - TestFlight distribution and iOS release automation
 
-See the full [roadmap](ROADMAP.md).
+See the full [roadmap](ROADMAP.md) and the sequenced [improvement plan](docs/IMPROVEMENT_PLAN.md).
 
 ## License
 

@@ -5,6 +5,7 @@ Thank you for helping improve Badminton Player Rating. Contributions based on re
 ## Before you start
 
 - Search existing issues before opening a new one.
+- Read the [improvement plan](docs/IMPROVEMENT_PLAN.md) before starting security, deployment, or dependency work.
 - Use a bug report for incorrect behavior and a feature request for a proposed workflow.
 - For scoring changes, describe the fairness problem and provide at least one concrete match example.
 - Do not include real participant contact details, private Supabase credentials, or production backups.
