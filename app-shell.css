@@ -78,6 +78,7 @@ body.shell-ready .scorekeeper-section #scoreA, body.shell-ready .scorekeeper-sec
 body.shell-ready .scorekeeper-section .score-adjust { min-width: 0; }
 .shell-ready .match-meta { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: start; gap: 12px; padding: 0; border: 0; background: transparent; box-shadow: none; }
 .shell-ready .match-meta > label { width: 180px; }
+#matchDateHint { margin-left: 6px; font-weight: 500; color: #496353; }
 .optional-meta { flex: 1; min-width: 160px; }
 .optional-meta summary { cursor: pointer; padding: 16px 0; font-size: 14px; color: #496353; }
 .optional-meta label { margin-bottom: 12px; }

@@ -89,6 +89,76 @@ test("viewer navigation and no horizontal overflow at narrow/mobile/desktop size
   await page.screenshot({ path: testInfo.outputPath("home-desktop.png"), fullPage: true });
 });
 
+test("new match date defaults to today and editing keeps the match date", async ({ page }) => {
+  await setup(page);
+  const today = await page.evaluate(() => localMatchDate());
+  await page.locator('.mobile-dock a[href="#match"]').click();
+  await expect(page.locator("#matchFormTitle")).toHaveText("新增比賽紀錄");
+  await expect(page.locator("#matchDate")).toHaveValue(today);
+  await expect(page.locator("#matchDateHint")).toBeVisible();
+  await expect(page.locator("#matchDateHint")).toHaveText("預設今日");
+
+  await page.evaluate(() => {
+    localStorage.setItem("badminton.matchDraft.v1", JSON.stringify({
+      editingMatchId: "",
+      values: {
+        teamAPlayer1: "p1",
+        teamAPlayer2: "p2",
+        teamBPlayer1: "p3",
+        teamBPlayer2: "p4",
+        scoreA: "21",
+        scoreB: "19",
+        matchDate: "2020-01-15",
+        matchLocation: "",
+        matchNote: ""
+      }
+    }));
+  });
+  await page.reload();
+  await expect(page.locator("body")).toHaveClass(/shell-ready/);
+  await expect(page.locator("#matchDate")).toHaveValue(today);
+  await expect(page.locator("#scoreB")).toHaveValue("19");
+  await expect(page.locator("#matchFormTitle")).toHaveText("新增比賽紀錄");
+
+  await page.evaluate(() => editMatch("m-00"));
+  await expect(page.locator("#matchFormTitle")).toHaveText("編輯比賽紀錄");
+  await expect(page.locator("#matchDate")).toHaveValue("2026-08-01");
+  await expect(page.locator("#matchDateHint")).toBeHidden();
+  await page.locator("#cancelEditButton").click();
+  await expect(page.locator("#matchFormTitle")).toHaveText("新增比賽紀錄");
+  await expect(page.locator("#matchDate")).toHaveValue(today);
+  await expect(page.locator("#matchDateHint")).toBeVisible();
+
+  await page.evaluate(() => editMatch("m-00"));
+  await page.locator("#scoreB").fill("9");
+  await page.locator("#saveMatchButton").click();
+  await expect(page.locator("#saveConfirmDetails")).toContainText("2026-08-01");
+  await expect(page.locator("#matchDate")).toHaveValue(today);
+  expect(await page.evaluate(() => state.matches.find((match) => match.id === "m-00").date)).toBe("2026-08-01");
+
+  await page.evaluate(() => {
+    localStorage.setItem("badminton.matchDraft.v1", JSON.stringify({
+      editingMatchId: "m-00",
+      values: {
+        teamAPlayer1: "p1",
+        teamAPlayer2: "p2",
+        teamBPlayer1: "p3",
+        teamBPlayer2: "p4",
+        scoreA: "21",
+        scoreB: "9",
+        matchDate: "2026-07-15",
+        matchLocation: "",
+        matchNote: ""
+      }
+    }));
+  });
+  await page.reload();
+  await expect(page.locator("body")).toHaveClass(/shell-ready/);
+  await expect(page.locator("#matchFormTitle")).toHaveText("編輯比賽紀錄");
+  await expect(page.locator("#matchDate")).toHaveValue("2026-07-15");
+  await expect(page.locator("#matchDateHint")).toBeHidden();
+});
+
 test("editing changes only the selected match, and local storage errors keep the draft", async ({ page }) => {
   await setup(page);
   await page.evaluate(() => editMatch("m-00"));

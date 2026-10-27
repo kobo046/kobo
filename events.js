@@ -9,9 +9,24 @@ function selectedPlayerIds() {
 
 let lastSavedConfirmationDate = "";
 
-function localMatchDate() {
-  const date = new Date();
+function localMatchDate(now = new Date()) {
+  const date = now && typeof now.getFullYear === "function" && typeof now.getTime === "function" && !Number.isNaN(now.getTime())
+    ? now
+    : new Date();
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function setNewMatchDateHint(visible) {
+  if (typeof byId !== "function") return;
+  const hint = byId("matchDateHint");
+  if (hint) hint.hidden = !visible;
+}
+
+function applyNewMatchDate() {
+  if (typeof byId !== "function") return;
+  const input = byId("matchDate");
+  if (input) input.value = localMatchDate();
+  setNewMatchDateHint(true);
 }
 
 function validateMatchScores(scoreA, scoreB) {
@@ -140,7 +155,8 @@ function setMatchFormFromMatch(match, options = {}) {
     byId("scoreB").value = match.scoreB;
   }
   if (options.includeMeta) {
-    byId("matchDate").value = match.date || new Date().toISOString().slice(0, 10);
+    byId("matchDate").value = match.date || localMatchDate();
+    setNewMatchDateHint(false);
     byId("matchLocation").value = match.location || "";
     byId("matchNote").value = match.note || "";
   }
@@ -343,7 +359,8 @@ function editMatch(matchId) {
   byId("teamBPlayer2").value = match.teamBIds[1];
   byId("scoreA").value = match.scoreA;
   byId("scoreB").value = match.scoreB;
-  byId("matchDate").value = match.date || new Date().toISOString().slice(0, 10);
+  byId("matchDate").value = match.date || localMatchDate();
+  setNewMatchDateHint(false);
   byId("matchLocation").value = match.location || "";
   byId("matchNote").value = match.note || "";
   byId("matchFormTitle").textContent = "編輯比賽紀錄";
@@ -377,10 +394,13 @@ async function deleteMatch(matchId) {
 }
 
 function clearMatchEditingUi() {
+  const wasEditing = Boolean(editingMatchId);
   editingMatchId = "";
   byId("matchFormTitle").textContent = "新增比賽紀錄";
   byId("saveMatchButton").textContent = "儲存比賽";
   byId("cancelEditButton").classList.add("hidden");
+  if (wasEditing) applyNewMatchDate();
+  else setNewMatchDateHint(true);
 }
 
 async function resetData() {
@@ -832,3 +852,5 @@ window.addEventListener("error", (event) => {
 window.addEventListener("keydown", (event) => {
   if (event.key === "Escape") hideSaveConfirmation();
 });
+
+if (typeof byId === "function" && byId("matchDate")) applyNewMatchDate();
