@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="editorial-theme.css?v=30" />
     <link rel="stylesheet" href="ios-liquid-theme.css?v=36" />
     <link rel="stylesheet" href="human-ui.css?v=2" />
-    <link rel="stylesheet" href="app-shell.css?v=3" />
+    <link rel="stylesheet" href="app-shell.css?v=4" />
   </head>
   <body class="viewer-mode">
     <header id="home" class="app-header">
@@ -299,8 +299,8 @@
           </div>
           <div class="team-input match-meta">
             <label>
-              <span>日期</span>
-              <input id="matchDate" type="date" />
+              <span>日期 <small id="matchDateHint">預設今日</small></span>
+              <input id="matchDate" type="date" autocomplete="off" />
             </label>
             <details class="optional-meta"><summary>場地與備註（選填）</summary><label>
               <span>場地</span>
@@ -451,9 +451,9 @@
     <script src="storage.js?v=34"></script>
     <script src="scoring.js?v=44"></script>
     <script src="render.js?v=46"></script>
-    <script src="events.js?v=43"></script>
+    <script src="events.js?v=44"></script>
     <script src="assets/lucide.min.js?v=0.468.0"></script>
-    <script src="app-shell.js?v=2"></script>
+    <script src="app-shell.js?v=3"></script>
     <script src="app.js?v=40"></script>
   </body>
 </html>

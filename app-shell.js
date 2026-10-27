@@ -69,18 +69,28 @@ const appShell = (() => {
       : "最近 52 星期";
     if (pendingDraft) {
       const draft = pendingDraft;
+      const resumingEdit = Boolean(draft.editingMatchId) && state.matches.some((match) => match.id === draft.editingMatchId);
       fields.forEach((id) => {
+        if (id === "matchDate" && !resumingEdit) return;
         if (typeof draft.values?.[id] === "string") byId(id).value = draft.values[id];
       });
-      if (draft.editingMatchId && state.matches.some((match) => match.id === draft.editingMatchId)) {
+      if (resumingEdit) {
         editingMatchId = draft.editingMatchId;
         byId("matchFormTitle").textContent = "編輯比賽紀錄";
         byId("saveMatchButton").textContent = "更新比賽";
         byId("cancelEditButton").classList.remove("hidden");
+        if (!byId("matchDate").value) {
+          const match = state.matches.find((item) => item.id === draft.editingMatchId);
+          byId("matchDate").value = (match && match.date) || localMatchDate();
+        }
+        setNewMatchDateHint(false);
       } else if (draft.editingMatchId) {
         // A missing edited record must not become an accidental new match.
         byId("scoreA").value = "";
         byId("scoreB").value = "";
+        applyNewMatchDate();
+      } else {
+        applyNewMatchDate();
       }
       pendingDraft = null;
     }

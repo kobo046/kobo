@@ -102,6 +102,87 @@ const tests = [
   ]
 ];
 
+function installMatchForm(context) {
+  const fields = {};
+  context.byId = (id) => {
+    if (!fields[id]) {
+      fields[id] = {
+        value: "",
+        textContent: "",
+        hidden: false,
+        classList: { add() {}, remove() {} }
+      };
+    }
+    return fields[id];
+  };
+  return new Proxy(fields, {
+    get(target, prop) {
+      return typeof prop === "string" ? context.byId(prop) : target[prop];
+    }
+  });
+}
+
+tests.push(
+  [
+    "new match date uses the local calendar day",
+    async () => {
+      const context = createContext(null);
+      const morning = new Date(2026, 9, 28, 0, 30);
+      context.morning = morning;
+      assert.equal(vm.runInContext("localMatchDate(morning)", context), "2026-10-28");
+    }
+  ],
+  [
+    "leaving edit mode defaults the next new match to today",
+    async () => {
+      const context = createContext(null);
+      const fields = installMatchForm(context);
+      fields.matchDate.value = "2024-01-02";
+      context.editingMatchId = "m-old";
+      vm.runInContext("clearMatchEditingUi()", context);
+      assert.equal(fields.matchDate.value, vm.runInContext("localMatchDate()", context));
+      assert.equal(fields.matchDateHint.hidden, false);
+      assert.equal(context.editingMatchId, "");
+      assert.equal(fields.matchFormTitle.textContent, "新增比賽紀錄");
+
+      fields.matchDate.value = "2024-05-05";
+      vm.runInContext("clearMatchEditingUi()", context);
+      assert.equal(fields.matchDate.value, "2024-05-05");
+    }
+  ],
+  [
+    "editing a match keeps that match date",
+    async () => {
+      const context = createContext(null);
+      const fields = installMatchForm(context);
+      fields.matchDate.value = "2026-10-28";
+      context.state.matches = [
+        {
+          id: "m-old",
+          date: "2024-01-02",
+          teamAIds: ["p1", "p2"],
+          teamBIds: ["p3", "p4"],
+          scoreA: 21,
+          scoreB: 17,
+          location: "",
+          note: ""
+        }
+      ];
+      context.location = { hash: "" };
+      context.renderPreview = () => null;
+      vm.runInContext('editMatch("m-old")', context);
+      assert.equal(fields.matchDate.value, "2024-01-02");
+      assert.equal(fields.matchDateHint.hidden, true);
+      assert.equal(fields.matchFormTitle.textContent, "編輯比賽紀錄");
+      assert.equal(context.editingMatchId, "m-old");
+
+      context.state.matches[0].date = "";
+      vm.runInContext('editMatch("m-old")', context);
+      assert.equal(fields.matchDate.value, vm.runInContext("localMatchDate()", context));
+    }
+  ]
+);
+
 let failed = 0;
 for (const [name, run] of tests) {
   try {
