@@ -98,7 +98,7 @@ test("new match date defaults to today and editing keeps the match date", async 
   await expect(page.locator("#matchDateHint")).toBeVisible();
   await expect(page.locator("#matchDateHint")).toHaveText("預設今日");
 
-  await page.evaluate(() => {
+  await page.addInitScript(() => {
     localStorage.setItem("badminton.matchDraft.v1", JSON.stringify({
       editingMatchId: "",
       values: {
@@ -136,7 +136,7 @@ test("new match date defaults to today and editing keeps the match date", async 
   await expect(page.locator("#matchDate")).toHaveValue(today);
   expect(await page.evaluate(() => state.matches.find((match) => match.id === "m-00").date)).toBe("2026-08-01");
 
-  await page.evaluate(() => {
+  await page.addInitScript(() => {
     localStorage.setItem("badminton.matchDraft.v1", JSON.stringify({
       editingMatchId: "m-00",
       values: {
