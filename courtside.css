@@ -103,7 +103,7 @@ body.shell-ready .scorekeeper-section :is(#scoreA, #scoreB) { background: var(--
 .shell-ready :is(.preview-box, .status-box) { border-radius: 4px; }
 .shell-ready .more-menu a { font-size: 15px; border-color: var(--court-line); }
 .shell-ready .more-menu svg { background: var(--court-clear); color: var(--court-green); padding: 0; width: 22px; height: 22px; }
-.shell-ready .mobile-dock { background: var(--court-paper); border-color: var(--court-line); box-shadow: none; }
+body.shell-ready .mobile-dock { background: var(--court-paper); border-color: var(--court-line); box-shadow: none; }
 .shell-ready .mobile-dock a { border-radius: 4px; color: var(--court-muted); font-size: 11px; }
 .shell-ready .mobile-dock a[aria-current=page] { background: var(--court-soft); color: var(--court-green); }
 @media (min-width: 1040px) {
@@ -111,7 +111,7 @@ body.shell-ready .scorekeeper-section :is(#scoreA, #scoreB) { background: var(--
   .shell-ready .topbar { height: 12px; padding: 0; }
   .shell-ready .brand { position: fixed; top: 28px; left: 24px; z-index: 90; gap: 10px; }
   .shell-ready .brand-mark { width: 32px; height: 36px; }
-  .shell-ready .mobile-dock { inset: 0 auto 0 0; width: 180px; max-width: none; transform: none; display: flex; flex-direction: column; padding: 100px 14px 24px; gap: 6px; border: 0; border-right: 1px solid var(--court-line); }
+  body.shell-ready .mobile-dock { inset: 0 auto 0 0; width: 180px; max-width: none; transform: none; display: flex; flex-direction: column; padding: 100px 14px 24px; gap: 6px; border: 0; border-right: 1px solid var(--court-line); }
   .shell-ready .mobile-dock a { flex-direction: row; justify-content: start; gap: 12px; min-height: 46px; padding: 12px; font-size: 14px; }
   .shell-ready .mobile-dock svg { width: 19px; height: 19px; }
   .shell-ready .mobile-dock a:last-child { margin-top: auto; }
@@ -146,7 +146,7 @@ body.shell-ready .scorekeeper-section :is(#scoreA, #scoreB) { background: var(--
   .shell-ready .flexible-team { padding: 10px; }
   .shell-ready .flexible-team h3 { font-size: 16px; }
   .shell-ready .section-heading .hint { font-size: 12px; }
-  .shell-ready .mobile-dock { padding-top: 7px; }
+  body.shell-ready .mobile-dock { padding-top: 7px; }
 }
 @media (hover: hover) {
   .shell-ready :is(.home-leader, .more-menu a):hover { background: var(--court-soft); }

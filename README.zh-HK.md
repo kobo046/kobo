@@ -61,6 +61,8 @@ npm run test:ui
 
 GitHub Pages 更新不會自動更新已安裝 iOS App 內的網頁程式。在 Mac 取得最新程式後執行 `npm ci`、`npm run cap:sync:ios`，再用 Xcode 重新建置安裝；不要先刪除含未同步記錄的 App。
 
+維護優先順序、CI 狀態和 Dependabot 處理方式見 [improvement plan](docs/IMPROVEMENT_PLAN.md)（英文）。
+
 ## 參與開發
 
 歡迎回報實際球局使用問題、提出計分公平性建議、改善手機操作及翻譯。提交前請閱讀 [CONTRIBUTING.md](CONTRIBUTING.md) 和 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)。
