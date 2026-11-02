@@ -17,6 +17,7 @@ const requiredFiles = [
   "index.html",
   "human-ui.css",
   "app-shell.css",
+  "courtside.css",
   "app-shell.js",
   "manifest.webmanifest",
   "supabase-config.js",

@@ -13,6 +13,7 @@ const files = [
   "ios-liquid-theme.css",
   "human-ui.css",
   "app-shell.css",
+  "courtside.css",
   "app-shell.js",
   "assets/lucide.min.js",
   "assets/lucide.LICENSE",
