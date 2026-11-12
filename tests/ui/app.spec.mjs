@@ -171,3 +171,62 @@ test("home and total leaderboard share ranks, ties and eligibility across naviga
   await expect(page.locator("#leaderboardBody .rank")).toHaveText(["1", "1", "3", "4", "–", "–", "–"]);
   await page.screenshot({ path: testInfo.outputPath("total-ranking-desktop.png"), fullPage: true });
 });
+
+test("journal menu keeps every secondary page reachable and controls touchable", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await setup(page);
+  await expect(page.locator('link[rel="stylesheet"][href^="styles.css"]')).toHaveCount(1);
+  await expect(page.locator('link[rel="stylesheet"]:not([href^="https:"])')).toHaveCount(1);
+  for (const route of ["players", "days", "access", "cloud", "backup", "analytics", "activity"]) {
+    await page.locator('.mobile-dock a[href="#more"]').click();
+    await expect(page.locator(`#more a[href="#${route}"]`)).toBeVisible();
+    await page.locator(`#more a[href="#${route}"]`).click();
+    await expect(page.locator("body")).toHaveAttribute("data-page", route);
+    await expect(page.locator(`#${route}`)).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= 390)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`${route}-mobile.png`), fullPage: true });
+    const smallTargets = await page.locator('main button:visible, main input:visible, main select:visible, main summary:visible').evaluateAll((nodes) =>
+      nodes.filter((node) => node.getBoundingClientRect().height < 44).map((node) => node.id || node.className));
+    expect(smallTargets, route).toEqual([]);
+  }
+  await page.locator('.mobile-dock a[href="#more"]').click();
+  await page.screenshot({ path: testInfo.outputPath("more-mobile.png"), fullPage: true });
+  await page.locator('#more a[href="#cloud"]').click();
+  await expect(page.locator("#cloudBalanceLocal")).toContainText("12");
+  await page.locator("#cloudCheckButton").click();
+  await expect(page.locator("#cloudHealthTitle")).toContainText("本機");
+  await expect(page.locator("#cloudSyncNowButton")).toBeVisible();
+  await page.locator("#shellBack").click();
+  await page.locator('#more a[href="#backup"]').click();
+  const downloadPromise = page.waitForEvent("download");
+  await page.locator('button[onclick="return handleExportClick(event)"]').click();
+  expect((await downloadPromise).suggestedFilename()).toMatch(/\.json$/);
+});
+
+test("viewer gate, login and logout retain permissions in the journal shell", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await setup(page, false);
+  await page.locator('.mobile-dock a[href="#match"]').click();
+  await expect(page.locator("#matchGate")).toBeVisible();
+  await page.locator('#matchGate a[href="#access"]').click();
+  await page.locator("#adminPasscode").fill("0000");
+  await page.locator("#loginButton").click();
+  await expect(page.locator("body")).toHaveClass(/viewer-mode/);
+  await page.locator("#adminPasscode").fill(await page.evaluate(() => adminPasscode));
+  await page.locator("#loginButton").click();
+  await expect(page.locator("body")).toHaveClass(/editor-mode/);
+  await page.locator('.mobile-dock a[href="#match"]').click();
+  await expect(page.locator("#matchGate")).toBeHidden();
+  await expect(page.locator("#matchForm")).toBeVisible();
+  for (const box of await page.locator(".score-adjust").all()) {
+    const size = await box.boundingBox();
+    expect(size.width).toBeGreaterThanOrEqual(44);
+    expect(size.height).toBeGreaterThanOrEqual(44);
+  }
+  await page.locator('.mobile-dock a[href="#more"]').click();
+  await page.locator('#more a[href="#access"]').click();
+  await page.locator("#logoutButton").click();
+  await expect(page.locator("body")).toHaveClass(/viewer-mode/);
+  await page.locator('.mobile-dock a[href="#match"]').click();
+  await expect(page.locator("#matchForm")).toBeHidden();
+});

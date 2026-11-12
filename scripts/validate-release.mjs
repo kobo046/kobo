@@ -15,9 +15,7 @@ async function requireFile(path) {
 
 const requiredFiles = [
   "index.html",
-  "human-ui.css",
-  "app-shell.css",
-  "courtside.css",
+  "styles.css",
   "app-shell.js",
   "manifest.webmanifest",
   "supabase-config.js",

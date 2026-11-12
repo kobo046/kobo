@@ -8,12 +8,6 @@ const outDir = join(root, "ios-web");
 const files = [
   "index.html",
   "styles.css",
-  "cartoon-court-v10.css",
-  "editorial-theme.css",
-  "ios-liquid-theme.css",
-  "human-ui.css",
-  "app-shell.css",
-  "courtside.css",
   "app-shell.js",
   "assets/lucide.min.js",
   "assets/lucide.LICENSE",
