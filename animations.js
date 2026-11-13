@@ -3,22 +3,28 @@
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
   const active = new Set();
   const played = new Set();
-  // Animate form headings rather than their parent: 44px controls stay put.
-  const cards = 'main > section:not(:has(form, input, select, button)), main > section > .section-heading, .home-shortcuts > a, .home-leader, .home-result, .mobile-leaderboard-item, .mobile-history-item, .day-card, .player-card, .more-menu > a, .team-card';
+  // Never animate the clipping hero wrapper across display:none in WebKit.
+  // Form headings also animate independently so 44px controls stay put.
+  const cards = 'main > section:not(.hero):not(:has(form, input, select, button)), .hero-copy, .hero-visual, main > section > .section-heading, .home-shortcuts > a, .home-leader, .home-result, .mobile-leaderboard-item, .mobile-history-item, .day-card, .player-card, .more-menu > a, .team-card';
   const numbers = '.home-result strong, .home-highlight b, .home-leader b, .mobile-player-rating, .mobile-history-score, .score-pill, .stats-band span';
   let scheduled = 0;
+  let routing = false;
   let celebration = null;
   let cleanupTimer = 0;
-  const allowed = () => !reduced.matches && !document.hidden;
+  const allowed = () => !routing && !reduced.matches && !document.hidden;
 
   function animate(node, frames, options) {
     if (!allowed() || !node.animate) return;
     const animation = node.animate(frames, options);
     const item = { node, animation };
     active.add(item);
-    const clean = () => active.delete(item);
+    const clean = () => {
+      active.delete(item);
+      // Release the effect as well as our reference; never commit transforms.
+      animation.cancel();
+    };
     animation.onfinish = clean;
-    animation.oncancel = clean;
+    animation.oncancel = () => active.delete(item);
     return animation;
   }
 
@@ -61,7 +67,7 @@
   }
 
   function schedule() {
-    if (!scheduled) scheduled = requestAnimationFrame(scan);
+    if (!routing && !scheduled) scheduled = requestAnimationFrame(scan);
   }
 
   function clearCelebration() {
@@ -99,10 +105,19 @@
     cleanupTimer = setTimeout(clearCelebration, 1600);
   }
 
-  document.addEventListener("app:route", () => {
+  document.addEventListener("app:route-start", () => {
+    routing = true;
+    cancelAnimationFrame(scheduled);
+    scheduled = 0;
     for (const item of active) item.animation.cancel();
+    active.clear();
     entrance.disconnect();
     played.clear();
+  });
+
+  // The shell dispatches only after the shown sections have reflowed and painted.
+  document.addEventListener("app:route", () => {
+    routing = false;
     schedule();
     const icon = document.querySelector('.mobile-dock a[aria-current="page"] svg');
     if (icon) animate(icon, [

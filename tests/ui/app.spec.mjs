@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { writeFile } from "node:fs/promises";
 
 const fixture = {
   players: ["Kobo", "Him", "Tim", "Anson", "大Tom", "亮", "Anson y"].map((name, i) => ({ id: `p${i + 1}`, name, gender: "男" })),
@@ -34,7 +35,101 @@ async function expectPageTop(page, target) {
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(2);
 }
 
+async function expectFullHero(page) {
+  await expect(page.locator("body")).toHaveAttribute("data-page", "home");
+  await expectPageTop(page, ".hero");
+  await expect(page.locator("#hero-title")).toHaveText("每一場都打到飛起！");
+  for (const selector of [".brand", "#hero-title", ".hero-visual svg", '.hero-actions a[href="#leaderboard"]']) {
+    await expect(page.locator(selector)).toBeInViewport({ ratio: 1 });
+  }
+  await expect.poll(() => page.locator(".hero-copy").evaluate((node) => getComputedStyle(node).opacity)).toBe("1");
+  await expect.poll(() => page.evaluate(() => {
+    const hero = document.querySelector(".hero").getBoundingClientRect();
+    const header = document.querySelector(".app-header").getBoundingClientRect();
+    const shortcuts = document.querySelector("#homeShortcuts").getBoundingClientRect();
+    return hero.height > 120 && hero.top >= header.bottom - 1 &&
+      shortcuts.top >= hero.bottom && shortcuts.top - hero.bottom < 40;
+  })).toBe(true);
+  // A healthy screenshot alone cannot catch WebKit's intermittent compositing
+  // failure. The clipping wrapper must never be observed or animated at all.
+  expect(await page.evaluate(() => window.heroWrapperEffects)).toEqual([]);
+  expect(await page.locator(".hero").evaluate((node) => ({
+    transform: getComputedStyle(node).transform,
+    opacity: getComputedStyle(node).opacity,
+    animations: node.getAnimations().length
+  }))).toEqual({ transform: "none", opacity: "1", animations: 0 });
+}
+
+for (const reducedMotion of ["no-preference", "reduce"]) {
+  test(`390px home hero survives dock hide/show with ${reducedMotion} motion`, async ({ page }, testInfo) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.emulateMedia({ reducedMotion });
+    await page.addInitScript(() => {
+      window.heroWrapperEffects = [];
+      window.heroHeights = [];
+      const animate = Element.prototype.animate;
+      Element.prototype.animate = function (...args) {
+        if (this.matches(".hero")) window.heroWrapperEffects.push("animate");
+        return animate.apply(this, args);
+      };
+      const observe = IntersectionObserver.prototype.observe;
+      IntersectionObserver.prototype.observe = function (node) {
+        if (node.matches(".hero")) window.heroWrapperEffects.push("observe");
+        return observe.call(this, node);
+      };
+      function sample() {
+        const hero = document.querySelector(".hero");
+        if (document.body?.dataset.page === "home" && hero && !hero.hidden) {
+          window.heroHeights.push(hero.getBoundingClientRect().height);
+        }
+        requestAnimationFrame(sample);
+      }
+      requestAnimationFrame(sample);
+    });
+    await setup(page);
+    await page.evaluate(() => document.fonts.ready);
+    await expectFullHero(page);
+    const initialHeight = await page.locator(".hero").evaluate((node) => node.offsetHeight);
+    await page.screenshot({ path: testInfo.outputPath("hero-home-390.png"), animations: "disabled" });
+    for (let visit = 0; visit < 3; visit++) {
+      await page.evaluate(() => window.scrollTo(0, 420));
+      await page.locator('.mobile-dock a[href="#match"]').click();
+      await expect(page.locator(".hero")).toBeHidden();
+      await expectPageTop(page, "#match");
+      // Both team headings must remain below the shell after the scroll reset.
+      await expect(page.locator(".flexible-team h3")).toHaveText(["A 隊", "B 隊"]);
+      for (const heading of await page.locator(".flexible-team h3").all()) {
+        await expect(heading).toBeInViewport({ ratio: 1 });
+      }
+      await page.evaluate(() => window.scrollTo(0, 420));
+      await page.locator('.mobile-dock a[href="#home"]').click();
+      await expectFullHero(page);
+      expect(await page.locator(".hero").evaluate((node) => node.offsetHeight)).toBe(initialHeight);
+    }
+    // Interrupt entrances before the shell's pending frames complete.
+    await page.evaluate(() => {
+      for (const route of ["match", "home", "match", "home"]) {
+        document.querySelector(`.mobile-dock a[href="#${route}"]`).click();
+      }
+    });
+    await expectFullHero(page);
+    expect(await page.locator(".hero").evaluate((node) => node.offsetHeight)).toBe(initialHeight);
+    await page.screenshot({ path: testInfo.outputPath("hero-home-after-match-390.png"), animations: "disabled" });
+    const heights = await page.evaluate(() => window.heroHeights);
+    expect(heights.length).toBeGreaterThan(0);
+    expect(Math.min(...heights)).toBeGreaterThan(120);
+    if (reducedMotion === "reduce") {
+      expect(await page.evaluate(() => document.getAnimations().filter((animation) => animation.playState === "running").length)).toBe(0);
+    }
+    const metricsPath = testInfo.outputPath("hero-layout.json");
+    await writeFile(metricsPath, JSON.stringify({ initialHeight, minHeight: Math.min(...heights), maxHeight: Math.max(...heights), samples: heights.length }, null, 2));
+    await testInfo.attach("hero-layout", { contentType: "application/json", path: metricsPath });
+  });
+}
+
 test("390px routes keep the brand and content together without native anchor gaps", async ({ page }, testInfo) => {
+  // Ten full deep-link loads can each wait for external fonts in WebKit.
+  test.setTimeout(60_000);
   await page.setViewportSize({ width: 390, height: 844 });
   await setup(page);
   await page.screenshot({ path: testInfo.outputPath("home-390.png"), animations: "disabled" });
@@ -252,9 +347,10 @@ test("journal menu keeps every secondary page reachable and controls touchable",
     await expect(page.locator(`#${route}`)).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= 390)).toBe(true);
     await page.screenshot({ path: testInfo.outputPath(`${route}-mobile.png`), fullPage: true });
-    const smallTargets = await page.locator('main button:visible, main input:visible, main select:visible, main summary:visible').evaluateAll((nodes) =>
-      nodes.filter((node) => node.getBoundingClientRect().height < 44).map((node) => node.id || node.className));
-    expect(smallTargets, route).toEqual([]);
+    // Full-page screenshots can trigger entrances for newly intersecting cards.
+    // Check the same touch sizes once that temporary scale has settled.
+    await expect.poll(() => page.locator('main button:visible, main input:visible, main select:visible, main summary:visible').evaluateAll((nodes) =>
+      nodes.filter((node) => node.getBoundingClientRect().height < 44).map((node) => node.id || node.className)), { message: route }).toEqual([]);
   }
   await page.locator('.mobile-dock a[href="#more"]').click();
   await page.screenshot({ path: testInfo.outputPath("more-mobile.png"), fullPage: true });

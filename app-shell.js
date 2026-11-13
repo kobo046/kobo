@@ -12,6 +12,8 @@ const appShell = (() => {
   function route() {
     const next = Object.hasOwn(labels, location.hash.slice(1)) ? location.hash.slice(1) : "home";
     const revision = ++routeRevision;
+    // Stop observers/effects before changing display, including rapid tab changes.
+    document.dispatchEvent(new CustomEvent("app:route-start"));
     document.body.dataset.page = next;
     document.querySelector(".hero").hidden = next !== "home";
     document.querySelectorAll("main > section").forEach((section) => {
@@ -27,10 +29,21 @@ const appShell = (() => {
       if (link.hash === `#${tab}`) link.setAttribute("aria-current", "page");
       else link.removeAttribute("aria-current");
     });
+    // Native fragment retries in WebKit must also land below the sticky shell.
+    // This changes scroll alignment only, without adding space to the layout.
+    const bodyStyle = getComputedStyle(document.body);
+    const contentTop = document.body.getBoundingClientRect().top + window.scrollY +
+      parseFloat(bodyStyle.paddingTop) + document.querySelector(".app-header").offsetHeight;
+    document.documentElement.style.scrollPaddingTop = `${contentTop}px`;
+    // WebKit needs a layout flush after display:none, before entrance observers
+    // or transforms can run. Keep the following frames free of those effects.
+    document.querySelectorAll("main > section:not([hidden])").forEach((section) => {
+      void section.offsetHeight;
+    });
     // Wait for visibility/layout and any native fragment navigation to settle.
     requestAnimationFrame(() => requestAnimationFrame(() => {
       if (revision !== routeRevision) return;
-      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
       document.dispatchEvent(new CustomEvent("app:route", { detail: { page: next } }));
     }));
     document.title = `${labels[next]} · 打到飛起`;
