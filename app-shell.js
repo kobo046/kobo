@@ -2,20 +2,20 @@ const appShell = (() => {
   const labels = { home: "首頁", leaderboard: "排行榜", match: "記分", history: "比賽記錄", more: "更多", players: "選手與戰績", access: "管理員模式", cloud: "雲端連線", backup: "備份與還原", analytics: "計分規則", activity: "操作紀錄", days: "比賽日" };
   const fields = ["teamAPlayer1", "teamAPlayer2", "teamBPlayer1", "teamBPlayer2", "scoreA", "scoreB", "matchDate", "matchLocation", "matchNote"];
   const draftKey = "badminton.matchDraft.v1";
-  const scrolls = new Map();
-  let current = "";
+  // Hashes identify pages, not scroll anchors (including direct links and Back).
+  history.scrollRestoration = "manual";
+  let routeRevision = 0;
   let ready = false;
   let lastFocus = null;
   let pendingDraft = null;
 
   function route() {
     const next = Object.hasOwn(labels, location.hash.slice(1)) ? location.hash.slice(1) : "home";
-    if (current) scrolls.set(current, window.scrollY);
-    current = next;
+    const revision = ++routeRevision;
     document.body.dataset.page = next;
     document.querySelector(".hero").hidden = next !== "home";
     document.querySelectorAll("main > section").forEach((section) => {
-      const page = ["homeRecent", "homeLeaders", "homeShortcuts"].includes(section.id) || section.classList.contains("stats-band") ? "home" : section.id === "matchGate" ? "match" : section.id;
+      const page = ["homeRecent", "homeLeaders", "homeShortcuts"].includes(section.id) || section.matches(".stats-band, .hero") ? "home" : section.id === "matchGate" ? "match" : section.id;
       section.hidden = page !== next;
     });
     const primary = ["home", "leaderboard", "match", "history", "more"].includes(next);
@@ -27,7 +27,12 @@ const appShell = (() => {
       if (link.hash === `#${tab}`) link.setAttribute("aria-current", "page");
       else link.removeAttribute("aria-current");
     });
-    requestAnimationFrame(() => window.scrollTo({ top: scrolls.get(next) || 0, behavior: "instant" }));
+    // Wait for visibility/layout and any native fragment navigation to settle.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (revision !== routeRevision) return;
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      document.dispatchEvent(new CustomEvent("app:route", { detail: { page: next } }));
+    }));
     document.title = `${labels[next]} · 打到飛起`;
   }
 
@@ -111,11 +116,20 @@ const appShell = (() => {
     refresh();
     route();
     window.addEventListener("hashchange", route);
+    window.addEventListener("popstate", route);
     document.addEventListener("click", (event) => {
-      if (!event.target.closest('[data-ranking-mode="all"]')) return;
-      byId("searchInput").value = "";
-      byId("sortSelect").value = "rating";
-      setLeaderboardMode("all");
+      const link = event.target.closest('a[href^="#"]');
+      if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || link.hasAttribute("download") || (link.target && link.target !== "_self")) return;
+      if (!Object.hasOwn(labels, link.hash.slice(1))) return;
+      event.preventDefault();
+      if (link.matches('[data-ranking-mode="all"]')) {
+        byId("searchInput").value = "";
+        byId("sortSelect").value = "rating";
+        setLeaderboardMode("all");
+      }
+      // pushState preserves hash URLs/history without starting anchor scrolling.
+      if (location.hash !== link.hash) history.pushState(null, "", link.hash);
+      route();
     });
     byId("matchForm").addEventListener("input", saveDraft);
     byId("matchForm").addEventListener("change", saveDraft);

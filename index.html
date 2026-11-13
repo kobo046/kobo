@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700;900&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css?v=48" />
+    <link rel="stylesheet" href="styles.css?v=49" />
   </head>
   <body class="viewer-mode">
     <header id="home" class="app-header">
@@ -25,11 +25,14 @@
         <a class="trip-stamp" href="#analytics" aria-label="查看計分規則">球場手帳<span>每一場・好好記錄</span></a>
       </nav>
       <div class="shell-heading"><a id="shellBack" href="#more" hidden>← 返回</a><span id="shellTitle">首頁</span><a id="shellCloud" href="#cloud">正在連線</a></div>
+    </header>
 
+    <main>
       <section class="hero" aria-labelledby="hero-title">
         <div class="hero-copy">
-          <p class="eyebrow">打到飛起・球聚紀錄</p>
-          <h1 id="hero-title">羽毛球積分<br />與比賽記錄</h1>
+          <p class="eyebrow">約埋波友・開場喇！</p>
+          <h1 id="hero-title">每一場都<br />打到飛起！</h1>
+          <p>羽毛球雙打記分・個人積分排名・球聚紀錄</p>
           <div class="hero-actions">
             <a class="primary-action editor-only" href="#match">記錄新比賽</a>
             <a class="secondary-action" href="#leaderboard" data-ranking-mode="all">查看排名</a>
@@ -42,27 +45,32 @@
             <path d="m43 101 28-36h182l30 36ZM164 65v36M57 83h210M105 65l-13 36m130-36 14 36" stroke="#fffcf7" stroke-width="2" />
             <path d="M56 87V47m216 40V47M57 50h215v30H57Z" fill="#fffcf7" fill-opacity=".65" />
             <path d="M58 60h214M58 70h214m-191-19v29m20-29v29m20-29v29m20-29v29m20-29v29m20-29v29m20-29v29m20-29v29m20-29v29m20-29v29" stroke="#8b9a7a" stroke-width="1.2" />
-            <g transform="rotate(-24 72 59)">
+            <g class="court-racket court-racket-left"><g transform="rotate(-24 72 59)">
               <ellipse cx="72" cy="40" rx="20" ry="27" fill="#f2ce70" />
               <ellipse cx="72" cy="40" rx="14" ry="20" fill="#fffcf7" />
               <path d="M60 32h24M59 40h26M60 48h24M67 22v36m10-36v36" stroke="#b1a98f" stroke-width="1.3" />
               <path d="M72 68v21" /><rect x="67" y="87" width="10" height="26" rx="4" fill="#ee9c92" />
-            </g>
-            <g transform="rotate(20 254 34)">
+            </g></g>
+            <g class="court-racket court-racket-right" transform="translate(180 5)"><g transform="rotate(22 72 95)">
+              <ellipse cx="72" cy="40" rx="18" ry="25" fill="#9bc9dc" />
+              <ellipse cx="72" cy="40" rx="12" ry="18" fill="#fffcf7" />
+              <path d="M61 33h22M60 41h24M62 49h20M68 23v34m8-34v34" stroke="#b1a98f" stroke-width="1.3" />
+              <path d="M72 65v21" /><rect x="67" y="84" width="10" height="23" rx="4" fill="#f2ce70" />
+            </g></g>
+            <path class="court-flight-trail" d="M95 46Q164-14 248 32" stroke="#8ca078" stroke-width="1.5" stroke-dasharray="4 7" />
+            <g class="court-shuttle"><g transform="rotate(20 254 34)">
               <path d="m239 37-8-26 11 5 7-10 7 10 11-5-8 26Z" fill="#fffcf7" />
               <path d="m242 16 3 21m4-30 1 30m6-21-1 21" stroke="#a8b5a0" stroke-width="1.5" />
               <path d="M239 37h20v7a10 10 0 0 1-20 0Z" fill="#9bc9dc" />
               <circle cx="245" cy="43" r="1" fill="#393530" stroke="none" /><circle cx="253" cy="43" r="1" fill="#393530" stroke="none" />
               <path d="M247 47q2 2 4 0" stroke-width="1.5" />
-            </g>
-            <path d="m302 22 2-6 3 6 6 2-6 3-3 6-2-6-6-3Z" fill="#f2ce70" stroke-width="1.5" />
-            <path d="M21 34h8m-4-4v8m278 48h6m-3-3v6M22 119h286" stroke="#8ca078" stroke-width="2" />
+            </g></g>
+            <path class="court-sparkle" d="m302 22 2-6 3 6 6 2-6 3-3 6-2-6-6-3Z" fill="#f2ce70" stroke-width="1.5" />
+            <path class="court-sparkle court-sparkle-small" d="M21 34h8m-4-4v8m278 48h6m-3-3v6" stroke="#8ca078" stroke-width="2" />
+            <path d="M22 119h286" stroke="#8ca078" stroke-width="2" />
           </svg>
         </figure>
       </section>
-    </header>
-
-    <main>
       <section id="homeShortcuts" class="section home-shortcuts"><a href="#match"><i data-lucide="square-plus" aria-hidden="true"></i><span>記錄新比賽</span><b>→</b></a><a href="#days"><i data-lucide="calendar-days" aria-hidden="true"></i><span>查看比賽日</span><b>→</b></a></section>
       <section id="homeRecent" class="section"><div class="section-heading"><h2>最近球聚</h2><a href="#days">所有比賽日 →</a></div><div id="homeRecentContent"></div></section>
       <section id="homeLeaders" class="section"><div class="section-heading"><h2>總排名</h2><a href="#leaderboard" data-ranking-mode="all">完整排名 →</a></div><p id="homeRankingNote" class="home-caption"></p><div id="homeLeadersContent"></div></section>
@@ -453,7 +461,8 @@
     <script src="render.js?v=46"></script>
     <script src="events.js?v=43"></script>
     <script src="assets/lucide.min.js?v=0.468.0"></script>
-    <script src="app-shell.js?v=3"></script>
+    <script src="app-shell.js?v=4"></script>
+    <script src="animations.js?v=1"></script>
     <script src="app.js?v=40"></script>
   </body>
 </html>

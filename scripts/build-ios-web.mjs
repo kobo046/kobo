@@ -9,6 +9,7 @@ const files = [
   "index.html",
   "styles.css",
   "app-shell.js",
+  "animations.js",
   "assets/lucide.min.js",
   "assets/lucide.LICENSE",
   "supabase-config.js",

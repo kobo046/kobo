@@ -24,6 +24,73 @@ async function fillMatch(page) {
   await page.locator("#scoreB").fill("12");
 }
 
+async function expectPageTop(page, target) {
+  await expect(page.locator(".brand")).toBeInViewport();
+  await expect.poll(() => page.evaluate((selector) => {
+    const heading = document.querySelector(".shell-heading").getBoundingClientRect();
+    const section = document.querySelector(selector).getBoundingClientRect();
+    return Math.abs(section.top - heading.bottom);
+  }, target)).toBeLessThan(24);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeLessThan(2);
+}
+
+test("390px routes keep the brand and content together without native anchor gaps", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await setup(page);
+  await page.screenshot({ path: testInfo.outputPath("home-390.png"), animations: "disabled" });
+  // Reproduce the real bottom-tab journey, including leaving a scrolled home.
+  await page.evaluate(() => window.scrollTo(0, 420));
+  await page.locator('.mobile-dock a[href="#leaderboard"]').click();
+  await expect(page.locator("#leaderboard")).toBeVisible();
+  await expectPageTop(page, "#leaderboard");
+  await page.screenshot({ path: testInfo.outputPath("leaderboard-from-home-390.png"), animations: "disabled" });
+  await page.goBack();
+  await expect(page.locator("body")).toHaveAttribute("data-page", "home");
+  await expectPageTop(page, ".hero");
+  await page.goForward();
+  await expectPageTop(page, "#leaderboard");
+  // Revisiting a previously scrolled page must also start below the shell.
+  await page.evaluate(() => window.scrollTo(0, 600));
+  await expect(page.locator(".brand")).toBeInViewport();
+  await page.locator('.mobile-dock a[href="#home"]').click();
+  await page.locator('.mobile-dock a[href="#leaderboard"]').click();
+  await expectPageTop(page, "#leaderboard");
+  // Existing programmatic hashes and direct deep links use the same policy.
+  for (const route of ["match", "history", "more", "players", "days", "cloud", "backup", "analytics", "access", "activity"]) {
+    await page.evaluate((route) => { location.hash = `#${route}`; }, route);
+    await expect(page.locator("body")).toHaveAttribute("data-page", route);
+    await expect(page.locator(`#${route}`)).toBeVisible();
+    await expectPageTop(page, `#${route}`);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.goto(`/#${route}`);
+    await expect(page.locator("body")).toHaveAttribute("data-page", route);
+    await expectPageTop(page, `#${route}`);
+  }
+});
+
+test("motion celebrates a real save, cleans up and respects reduced motion", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await setup(page);
+  const initial = await page.locator(".court-shuttle").evaluate((node) => getComputedStyle(node).transform);
+  await expect.poll(() => page.locator(".court-shuttle").evaluate((node) => getComputedStyle(node).transform)).not.toBe(initial);
+  await fillMatch(page);
+  await page.locator("#saveMatchButton").click();
+  await expect(page.locator("#saveConfirmTitle")).toContainText("比賽已儲存");
+  await expect(page.locator(".celebration-piece")).toHaveCount(24);
+  expect(await page.locator(".celebration-layer").evaluate((node) => getComputedStyle(node).pointerEvents)).toBe("none");
+  await expect(page.locator(".celebration-layer")).toHaveCount(0, { timeout: 2500 });
+  await page.locator("#nextMatchButton").click();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.locator('.mobile-dock a[href="#home"]').click();
+  await expect.poll(() => page.evaluate(() => document.getAnimations().filter((animation) => animation.playState === "running").length)).toBe(0);
+  await fillMatch(page);
+  await page.locator("#scoreB").fill("11");
+  await page.locator("#saveMatchButton").click();
+  await expect(page.locator("#saveConfirmTitle")).toContainText("比賽已儲存");
+  await expect(page.locator(".celebration-layer")).toHaveCount(0);
+  expect(await page.evaluate(() => document.getAnimations().filter((animation) => animation.playState === "running").length)).toBe(0);
+});
+
 test("mobile tabs, draft, compact entry and honest local save", async ({ page }, testInfo) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
