@@ -1,6 +1,6 @@
 {
   "appId": "com.kobo046.badmintonrating",
-  "appName": "羽毛球積分榜",
+  "appName": "打到飛起",
   "webDir": "ios-web",
   "bundledWebRuntime": false,
   "ios": {

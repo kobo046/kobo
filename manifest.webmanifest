@@ -1,6 +1,6 @@
 {
-  "name": "羽毛球個人積分排行榜",
-  "short_name": "羽毛球積分",
+  "name": "打到飛起",
+  "short_name": "打到飛起",
   "description": "手機友善的羽毛球雙打即場記分與個人積分排行榜",
   "id": "./",
   "start_url": "./index.html",

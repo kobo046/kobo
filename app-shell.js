@@ -28,7 +28,7 @@ const appShell = (() => {
       else link.removeAttribute("aria-current");
     });
     requestAnimationFrame(() => window.scrollTo({ top: scrolls.get(next) || 0, behavior: "instant" }));
-    document.title = `${labels[next]} · 羽盟`;
+    document.title = `${labels[next]} · 打到飛起`;
   }
 
   function updateMatch() {

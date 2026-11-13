@@ -1,4 +1,4 @@
-# Badminton Player Rating
+# 打到飛起（Badminton Player Rating）
 
 [![CI](https://github.com/kobo046/kobo/actions/workflows/ci.yml/badge.svg)](https://github.com/kobo046/kobo/actions/workflows/ci.yml)
 [![GitHub Pages](https://github.com/kobo046/kobo/actions/workflows/pages.yml/badge.svg)](https://github.com/kobo046/kobo/actions/workflows/pages.yml)
